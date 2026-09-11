@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import ssl
 import time
 import urllib.parse
 from functools import lru_cache
@@ -37,6 +38,19 @@ def get_http_config() -> HttpConfig:
     return HttpConfig()
 
 
+#: Several Japanese government servers still renegotiate TLS the old way, which
+#: OpenSSL 3 refuses by default and which surfaces mid-download rather than at
+#: the handshake. Allowing it is what makes those downloads reproducible.
+_LEGACY_SERVER_CONNECT = 0x4
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Build the TLS context used for every request."""
+    context = ssl.create_default_context()
+    context.options |= _LEGACY_SERVER_CONNECT
+    return context
+
+
 @lru_cache(maxsize=1)
 def get_http_client() -> httpx.Client:
     """Return a singleton httpx client configured from the environment."""
@@ -45,6 +59,7 @@ def get_http_client() -> httpx.Client:
         headers={"User-Agent": config.http_user_agent},
         timeout=config.http_timeout_seconds,
         follow_redirects=True,
+        verify=_ssl_context(),
     )
 
 

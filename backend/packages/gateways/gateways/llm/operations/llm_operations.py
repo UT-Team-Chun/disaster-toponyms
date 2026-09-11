@@ -13,18 +13,27 @@ from gateways.llm.connections import get_openai_client
 class LLMOperations:
     """High-level LLM operations using OpenAI client."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4", temperature: float = 0.7) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "gpt-5.6-terra",
+        temperature: float = 0.7,
+        reasoning_effort: str | None = None,
+    ) -> None:
         """Initialize LLM operations with OpenAI client.
 
         Args:
             api_key: OpenAI API key
             model: Default model name
             temperature: Default temperature
+            reasoning_effort: Default reasoning budget for structured requests.
+                None leaves the parameter out so the model's own default applies.
 
         """
         self._client = get_openai_client(api_key=api_key)
         self._default_model = model
         self._default_temperature = temperature
+        self._default_reasoning_effort = reasoning_effort
 
     # VLM版とかも追加したい。
     def generate(
@@ -58,6 +67,7 @@ class LLMOperations:
         *,
         schema_name: str = "extraction",
         model: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> dict[str, Any]:
         """Generate a response constrained to a JSON schema.
 
@@ -67,6 +77,9 @@ class LLMOperations:
                 with ``additionalProperties`` set to false for strict mode.
             schema_name: Name reported to the API for the schema.
             model: Model name to use. If None, uses the default model.
+            reasoning_effort: Reasoning budget for this request. If None, uses
+                the default given to the constructor, and omits the parameter
+                when that is None too.
 
         Returns:
             The parsed JSON object returned by the model.
@@ -75,6 +88,8 @@ class LLMOperations:
             ValueError: If the model returns no content or invalid JSON.
 
         """
+        effort = reasoning_effort or self._default_reasoning_effort
+        extra: dict[str, Any] = {"reasoning_effort": effort} if effort else {}
         completion = self._client.chat.completions.create(
             model=model or self._default_model,
             messages=messages,
@@ -82,6 +97,7 @@ class LLMOperations:
                 "type": "json_schema",
                 "json_schema": {"name": schema_name, "schema": schema, "strict": True},
             },
+            **extra,
         )
         content = completion.choices[0].message.content
         if not content:

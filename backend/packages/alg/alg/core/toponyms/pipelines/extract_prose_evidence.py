@@ -19,10 +19,15 @@ from openai.types.chat import ChatCompletionMessageParam
 
 from alg.core.toponyms.tools import llm_cache
 from alg.core.toponyms.tools.claims import verify_quote
+from alg.core.toponyms.tools.disaster_records import (
+    RECORD_SCHEMA,
+    RecordContext,
+    build_records,
+)
 from alg.core.toponyms.tools.element_matcher import match_elements
 from alg.core.toponyms.tools.ids import make_toponym_id
 from alg.core.toponyms.tools.prefectures import pref_code
-from alg.core.toponyms.tools.scoring import apply_scores
+from alg.core.toponyms.tools.scoring import MAX_ORIGIN_LEVEL, apply_scores
 from alg.models.element import ElementDictionary
 from alg.models.hazard import HAZARD_LABELS_JA
 from alg.models.toponym import AdminArea, Evidence, Toponym
@@ -58,6 +63,7 @@ EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
                     "quote",
                     "claim",
                     "summary",
+                    "disaster_records",
                 ],
                 "properties": {
                     "name": {"type": "string"},
@@ -69,11 +75,12 @@ EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
                         "type": "array",
                         "items": {"type": "string", "enum": HAZARD_ENUM},
                     },
-                    "evidence_level": {"type": "integer", "enum": [1, 2, 3]},
+                    "evidence_level": {"type": "integer", "enum": [1, 2]},
                     "stance": {"type": "string", "enum": ["supports", "disputes"]},
                     "quote": {"type": "string"},
                     "claim": {"type": "string"},
                     "summary": {"type": "string"},
+                    "disaster_records": RECORD_SCHEMA,
                 },
             },
         },
@@ -109,6 +116,8 @@ class ExtractionStats:
     findings: int = 0
     accepted: int = 0
     quote_rejected: int = 0
+    records_accepted: int = 0
+    records_rejected: int = 0
     cached_chunks: int = 0
     live_chunks: int = 0
 
@@ -161,10 +170,11 @@ def _extract_chunk(
     chunk: str,
     llm: LLMOperations | None,
     stats: ExtractionStats,
+    signature: str,
 ) -> list[dict[str, Any]]:
     """Return the findings for one chunk, using the cache when possible."""
     prompt = build_prompt(document, chunk)
-    key = llm_cache.cache_key(document.source_id, prompt)
+    key = llm_cache.cache_key(document.source_id, signature, prompt)
     cached = llm_cache.load(key)
     if cached is not None:
         stats.cached_chunks += 1
@@ -199,6 +209,7 @@ def _to_record(
     document: ProseDocument,
     dictionary: ElementDictionary,
     model_name: str,
+    stats: ExtractionStats,
 ) -> Toponym | None:
     """Convert one accepted finding into a toponym record."""
     name = str(finding.get("name") or "").strip()
@@ -210,6 +221,7 @@ def _to_record(
     reading = finding.get("reading") or None
     matches = match_elements(name, reading, dictionary)
     stance = "disputes" if finding.get("stance") == "disputes" else "supports"
+    hazard_types = list(finding.get("hazard_types") or [])
     evidence = Evidence(
         kind=document.evidence_kind,  # type: ignore[arg-type]
         stance=stance,  # type: ignore[arg-type]
@@ -217,10 +229,22 @@ def _to_record(
         locator=document.locator,
         quote=quote,
         claim=str(finding.get("claim") or "").strip() or f"{name}に関する記述",
-        level=int(finding.get("evidence_level") or 1),
+        level=min(int(finding.get("evidence_level") or 1), MAX_ORIGIN_LEVEL),
         extracted_by=f"llm:{model_name}",
         quote_verified=True,
     )
+    records, rejected = build_records(
+        finding.get("disaster_records"),
+        RecordContext(
+            source_text=document.text,
+            source_id=document.source_id,
+            locator=document.locator,
+            hazard_types=tuple(hazard_types),
+            model_name=model_name,
+        ),
+    )
+    stats.records_accepted += len(records)
+    stats.records_rejected += rejected
     return apply_scores(
         Toponym(
             id=make_toponym_id(name, admin, salt=document.doc_id),
@@ -228,10 +252,11 @@ def _to_record(
             reading=reading,
             status="current",
             admin=admin,
-            hazard_types=list(finding.get("hazard_types") or []),
+            hazard_types=hazard_types,
             elements=[match.to_ref() for match in matches],
             etymology_summary=str(finding.get("summary") or "").strip(),
             evidence=[evidence],
+            disaster_records=records,
             dataset=document.doc_id,
         ),
     )
@@ -243,6 +268,7 @@ def extract_from_document(
     *,
     llm: LLMOperations | None = None,
     model_name: str = "unknown",
+    effort: str | None = None,
 ) -> tuple[list[Toponym], ExtractionStats]:
     """Mine one prose document for evidence-backed toponyms.
 
@@ -251,6 +277,7 @@ def extract_from_document(
         dictionary: Element dictionary used to tag the names.
         llm: LLM operations, or None to use only cached extractions.
         model_name: Model identifier recorded on each citation.
+        effort: Reasoning budget requested, recorded so a change re-reads.
 
     Returns:
         The accepted records and the counters for the run.
@@ -258,14 +285,15 @@ def extract_from_document(
     """
     stats = ExtractionStats()
     records: dict[str, Toponym] = {}
+    signature = f"{model_name}|{effort or 'default'}"
     for chunk in chunk_text(document.text):
-        for finding in _extract_chunk(document, chunk, llm, stats):
+        for finding in _extract_chunk(document, chunk, llm, stats, signature):
             stats.findings += 1
             quote = str(finding.get("quote") or "")
             if not verify_quote(quote, document.text):
                 stats.quote_rejected += 1
                 continue
-            record = _to_record(finding, document, dictionary, model_name)
+            record = _to_record(finding, document, dictionary, model_name, stats)
             if record is None:
                 stats.quote_rejected += 1
                 continue

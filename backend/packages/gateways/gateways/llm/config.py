@@ -20,7 +20,12 @@ class LLMConfig(BaseSettings):
 
     openai_api_key: str | None = None
     llm_provider: str = "openai"
-    llm_model: str = "gpt-5.4-mini"
+    #: Structured extraction runs on the mid-tier model of the newest family.
+    llm_model: str = "gpt-5.6-terra"
+    #: Reasoning budget for structured extraction; None omits the parameter.
+    #: Measured against "medium" on the gazetteer, "low" found the same origins
+    #: for a third of the output tokens, and the quotes are verified either way.
+    llm_reasoning_effort: str | None = "low"
     temperature: float = 0.7
     max_tokens: int = 4000
     embedding_model: str = "text-embedding-3-small"

@@ -40,7 +40,7 @@ export function ResultList(props: Props) {
                 onClick={() => props.onSelect(item.id)}
                 aria-current={active}
                 className={[
-                  "flex w-full cursor-pointer items-start gap-2 px-3 py-2 text-left transition-colors",
+                  "flex w-full min-h-11 cursor-pointer items-start gap-2 px-3 py-2.5 text-left transition-colors md:min-h-0 md:py-2",
                   active ? "bg-accent" : "hover:bg-accent/60",
                 ].join(" ")}
               >
@@ -70,8 +70,15 @@ export function ResultList(props: Props) {
                     {[item.pref, item.municipality].filter(Boolean).join("")}
                   </span>
                 </span>
-                <span className="mt-0.5 shrink-0 font-mono text-[10px] text-muted-foreground">
-                  L{item.evidenceLevel}
+                <span className="mt-0.5 flex shrink-0 flex-col items-end gap-0.5">
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    L{item.evidenceLevel}
+                  </span>
+                  {item.hasRecord ? (
+                    <span className="text-[9px] text-muted-foreground">
+                      記録
+                    </span>
+                  ) : null}
                 </span>
               </button>
             </li>

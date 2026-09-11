@@ -26,6 +26,9 @@ depends_on = [
     {path = "gateways.gsi"},
     {path = "gateways.web"},
     {path = "gateways.estat"},
+    {path = "gateways.ndl"},
+    {path = "gateways.nihu"},
+    {path = "gateways.codh"},
 ]
 
 # alg.entrypoints は alg.core と alg.models のみ依存
@@ -36,6 +39,7 @@ depends_on = [
     {path = "alg.models"},
     {path = "gateways.llm"},
     {path = "gateways.gsi"},
+    {path = "gateways.nihu"},
 ]
 
 # alg.experimental は検証用。core と同じ範囲

@@ -15,11 +15,15 @@ import sys
 import zipfile
 from pathlib import Path
 
+from gateways.codh.operations.nrct import download_dataset
 from gateways.gsi.operations.monuments import MONUMENT_GEOJSON_ZIP
 from gateways.http.connections import ResourceMissingError, fetch_bytes
+from gateways.ndl.operations.fulltext import fetch_book_pages
+from gateways.nihu.operations.gazetteer import download_archive
 from gateways.web.operations.page_text import fetch_page_text
 from gateways.web.operations.wikipedia import fetch_article_text
 
+from alg.core.toponyms.pipelines.ingest_historical_gazetteer import GAZETTEER_VOLUMES
 from alg.core.toponyms.tools.paths import get_paths
 
 GEOLONIA_CSV = "https://geolonia.github.io/japanese-addresses/latest.csv"
@@ -34,10 +38,11 @@ PDF_SOURCES: dict[str, str] = {
     "toyokawa_villages": "https://www.city.toyokawa.lg.jp/material/files/group/2/sankou1.pdf",
 }
 
-#: Prefectural pages whose lists feed the element dictionary.
+#: Prefectural and university pages read for place-name origins.
 HTML_SOURCES: dict[str, str] = {
     "nagano_sabo_general": ("https://www.pref.nagano.lg.jp/sabo/manabu/chizu-yomitoku-2.html"),
     "nagano_sabo_landslide": ("https://www.pref.nagano.lg.jp/sabo/manabu/chizu-yomitoku-4.html"),
+    "kagoshima_saigai_chimei": ("https://www.sci.kagoshima-u.ac.jp/oyo/name_r.html"),
 }
 
 #: Encyclopaedia articles quoted by the curated seeds.
@@ -121,6 +126,27 @@ def download_news() -> list[str]:
     return written
 
 
+def download_historical_places() -> list[str]:
+    """Download the located historical place names and the modern-address index."""
+    paths = get_paths()
+    archive = download_archive(paths.nihu_dir)
+    index = download_dataset(paths.codh_dir)
+    return [
+        f"歴史地名データ: {archive.name} ({archive.stat().st_size} bytes)",
+        f"歴史地名大系索引: {index.name} ({index.stat().st_size} bytes)",
+    ]
+
+
+def download_gazetteer_text() -> list[str]:
+    """Download the scanned text of the national gazetteer, one volume at a time."""
+    written: list[str] = []
+    for pid, label in GAZETTEER_VOLUMES:
+        pages = fetch_book_pages(pid)
+        characters = sum(len(page.contents) for page in pages)
+        written.append(f"{label}: {len(pages)} コマ / {characters:,} 字 (pid {pid})")
+    return written
+
+
 def download_addresses() -> list[str]:
     """Download the nationwide address table."""
     path = get_paths().geolonia_csv
@@ -150,6 +176,8 @@ def main() -> int:
     """Download every source and report what was written."""
     steps = (
         ("住所データ", download_addresses),
+        ("歴史地名データ", download_historical_places),
+        ("大日本地名辞書の全文", download_gazetteer_text),
         ("自然災害伝承碑", download_monuments),
         ("自治体の地名考 (PDF)", download_pdfs),
         ("都道府県の解説ページ", download_html),
@@ -162,8 +190,6 @@ def main() -> int:
             print(f"    {line}")
     print()
     print("完了。次に make build-data を実行してください。")
-    print("人間文化研究機構の歴史地名データは規約上の手動ダウンロードが必要です:")
-    print("  https://bridge.nihu.jp/accumulateddata_list")
     return 0
 
 

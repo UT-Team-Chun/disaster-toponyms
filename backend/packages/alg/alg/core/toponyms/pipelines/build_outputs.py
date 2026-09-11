@@ -29,6 +29,14 @@ from alg.models.toponym import EVIDENCE_LEVEL_LABELS_JA, Toponym
 MAX_MAIN_GEOJSON_BYTES = 8 * 1024 * 1024
 #: Level at or above which a record counts as documented rather than inferred.
 DOCUMENTED_LEVEL = 2
+#: Level meaning a documented origin is matched by a recorded disaster.
+LEVEL_3 = 3
+
+
+#: Directories written one file per record, which have to be pruned when a
+#: record disappears. Without this, a place dropped by a stricter rule would
+#: keep serving its old evidence page.
+PER_RECORD_DIRS = ("details", "candidates", "areas")
 
 
 @dataclass
@@ -37,12 +45,26 @@ class OutputReport:
 
     files: list[str] = field(default_factory=list)
     bytes_written: int = 0
+    removed: int = 0
     warnings: list[str] = field(default_factory=list)
 
     def record(self, path: Path, output_dir: Path, size: int) -> None:
         """Note one written file."""
         self.files.append(str(path.relative_to(output_dir)))
         self.bytes_written += size
+
+
+def _prune_stale(output_dir: Path, report: OutputReport) -> None:
+    """Delete per-record files this build did not write."""
+    written = set(report.files)
+    for name in PER_RECORD_DIRS:
+        directory = output_dir / name
+        if not directory.is_dir():
+            continue
+        for path in directory.iterdir():
+            if path.is_file() and str(path.relative_to(output_dir)) not in written:
+                path.unlink()
+                report.removed += 1
 
 
 def _detail_payload(toponym: Toponym) -> dict[str, Any]:
@@ -66,6 +88,7 @@ def _stats_payload(
     by_hazard: dict[str, int] = {}
     by_pref: dict[str, dict[str, int]] = {}
     by_element: dict[str, int] = {}
+    by_relation: dict[str, int] = {}
     for toponym in toponyms:
         level = str(toponym.evidence_level)
         by_level[level] = by_level.get(level, 0) + 1
@@ -73,11 +96,16 @@ def _stats_payload(
             by_hazard[hazard] = by_hazard.get(hazard, 0) + 1
         for ref in toponym.elements:
             by_element[ref.element_id] = by_element.get(ref.element_id, 0) + 1
+        relation = toponym.record_relation()
+        if relation:
+            by_relation[relation] = by_relation.get(relation, 0) + 1
         code = toponym.admin.pref_code or "00"
-        bucket = by_pref.setdefault(code, {"total": 0, "documented": 0})
+        bucket = by_pref.setdefault(code, {"total": 0, "documented": 0, "level3": 0})
         bucket["total"] += 1
         if toponym.evidence_level >= DOCUMENTED_LEVEL:
             bucket["documented"] += 1
+        if toponym.evidence_level >= LEVEL_3:
+            bucket["level3"] += 1
 
     candidates_by_pref: dict[str, int] = {}
     for candidate in candidates:
@@ -102,6 +130,11 @@ def _stats_payload(
         "areasTotal": len(areas),
         "areasByPrefecture": areas_by_pref,
         "withAreaTotal": sum(1 for toponym in toponyms if toponym.area_key),
+        "withDisasterRecord": sum(1 for toponym in toponyms if toponym.has_disaster_record()),
+        "candidatesWithRecord": sum(
+            1 for candidate in candidates if candidate.has_disaster_record()
+        ),
+        "l3ByRelation": by_relation,
     }
 
 
@@ -167,7 +200,10 @@ def write_outputs(output_dir: Path, bundle: DatasetBundle) -> OutputReport:
         size = write_json(path, areas_feature_collection(area_group))
         report.record(path, output_dir, size)
 
-    for toponym in toponyms:
+    # Candidates normally carry no evidence page, but one that a disaster record
+    # was matched to has something to show, so it gets a detail file too.
+    detailed = [*toponyms, *(item for item in candidates if item.has_disaster_record())]
+    for toponym in detailed:
         path = output_dir / "details" / f"{toponym.id}.json"
         size = write_json(path, _detail_payload(toponym))
         report.record(path, output_dir, size)
@@ -206,8 +242,12 @@ def write_outputs(output_dir: Path, bundle: DatasetBundle) -> OutputReport:
                 "自然災害伝承碑（国土地理院）",
                 "Geolonia 住所データ（CC BY 4.0）",
                 "歴史地名データ（人間文化研究機構・H-GIS研究会）",
+                "吉田東伍『大日本地名辞書』二版（国立国会図書館デジタルコレクション）",
+                "次世代デジタルライブラリー（国立国会図書館）",
             ],
         },
     )
     report.record(meta_path, output_dir, size)
+
+    _prune_stale(output_dir, report)
     return report

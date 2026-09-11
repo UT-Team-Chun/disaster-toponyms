@@ -46,6 +46,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="ネットワークを使う処理（LLM・ジオコーディング・タイル照合）をすべて省略する",
     )
     parser.add_argument(
+        "--no-gazetteer",
+        action="store_true",
+        help="大日本地名辞書（全国の歴史地誌）の読み取りを省略する",
+    )
+    parser.add_argument(
+        "--province",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help="大日本地名辞書を旧国名で絞る（例: --province 肥後 --province 薩摩）",
+    )
+    parser.add_argument(
+        "--no-records",
+        action="store_true",
+        help="自然災害伝承碑からの被災地名の読み取りと対応づけを省略する",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=12,
+        help="LLM抽出の同時実行数（既定 12）",
+    )
+    parser.add_argument(
         "--no-areas",
         action="store_true",
         help="地名がカバーする小地域ポリゴンの対応づけを省略する",
@@ -79,6 +102,10 @@ def main(argv: list[str] | None = None) -> int:
         sample_hazard_zones=not (args.no_hazard or args.offline),
         include_candidates=not args.no_candidates,
         attach_area_polygons=not (args.no_areas or args.offline),
+        include_gazetteer=not args.no_gazetteer,
+        gazetteer_provinces=frozenset(args.province) if args.province else None,
+        link_disaster_records=not args.no_records,
+        llm_workers=args.workers,
         candidate_threshold=args.candidate_threshold,
         write_files=not args.dry_run,
         pref_codes=frozenset(args.pref) if args.pref else None,

@@ -241,3 +241,55 @@ sources:
     note: >-
       全国 22 万件の町丁・字等ポリゴン。小字の境界は全国では公開されていないため、
       地名がカバーする範囲はこの単位で表示している。
+
+  - id: yoshida_dainihon_chimei_1907
+    type: book
+    title: 大日本地名辞書 二版
+    author: 吉田東伍
+    year: 1907
+    publisher: 冨山房
+    url: https://dl.ndl.go.jp/pid/2937057
+    license: パブリックドメイン（国立国会図書館デジタルコレクション）
+    accessed: "2026-09-11"
+    note: >-
+      全国の郡・郷・村・山川を網羅した明治期の地誌。地名の由来・地形・災害の記述を含み、
+      本データセットの全国展開の主軸となる。本文は次世代デジタルライブラリーのOCRテキストを
+      用いており、引用はOCR転写との一致を検証している（原本の版面は未確認）。
+      上巻 pid 2937057 / 中巻 2937058 / 下巻 2937059 / 続編 2937060。
+
+  - id: nihu_rekishi_chimei
+    type: db
+    title: 歴史地名データ
+    publisher: 人間文化研究機構
+    year: 2022
+    url: https://bridge.nihu.jp/accumulateddata_detail/478706
+    doi: 10.57408/nihu.dc.478706
+    license: 出典明示のうえ自由利用（商用・改変可）
+    accessed: "2026-09-11"
+    note: >-
+      大日本地名辞書 53,528 件と旧5万分の1地形図 242,544 件の歴史地名に緯度経度・読み・
+      旧字原記載を付したデータ。辞書の見出しを同定し、消滅した村・小字に座標を与えるために使う。
+
+  - id: codh_nrct
+    type: db
+    title: 『日本歴史地名大系』地名項目データセット
+    publisher: 人文学オープンデータ共同利用センター（CODH）
+    url: https://geoshape.ex.nii.ac.jp/nrct/
+    doi: 10.20676/00000448
+    license: CC BY 4.0
+    accessed: "2026-09-11"
+    note: >-
+      歴史地名 80,502 件の名称・読み・現在の住所・代表点。解説本文は著作権上利用できないため、
+      現在の市区町村を突き合わせる索引としてのみ用いる。
+
+  - id: iwamatsu_saigai_chimei
+    type: web
+    title: 災害地名
+    author: 岩松暉
+    publisher: 鹿児島大学理学部地球環境科学科
+    url: https://www.sci.kagoshima-u.ac.jp/oyo/name_r.html
+    license: 引用のうえ出典明示
+    accessed: "2026-09-11"
+    note: >-
+      鹿児島県の具体的な災害地名（花倉・竜ヶ水・洗出・赤崩・毘沙門・平之町など）について、
+      語義と実際に起きた土石流・地すべりの年月日を併記した解説。九州の根拠付き地名の起点となる。

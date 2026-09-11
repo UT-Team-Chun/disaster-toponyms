@@ -11,12 +11,15 @@ import {
   EVIDENCE_LEVEL_LABELS,
   HAZARD_COLORS,
   HAZARD_LABELS,
+  MATCH_METHOD_LABELS,
   PRECISION_LABELS,
+  RECORD_RELATION_LABELS,
   STATUS_LABELS,
   ZONE_LABELS,
   primaryHazard,
 } from "~/lib/dataset/labels";
 import type {
+  DisasterRecord,
   Evidence,
   Source,
   ToponymDetail,
@@ -27,6 +30,8 @@ type Props = {
   feature: ToponymFeature;
   sources: Record<string, Source>;
   onClose: () => void;
+  /** 下からのシートで開くときは、シート側に閉じるボタンがある。 */
+  hideHeaderClose?: boolean;
 };
 
 const gsiMapUrl = (lat: number, lon: number): string =>
@@ -61,7 +66,9 @@ const EvidenceCard = ({
         </Badge>
         {evidence.quote_verified ? (
           <Badge variant="outline" className="text-[10px] text-emerald-700">
-            原文一致を検証済み
+            {evidence.quote_medium === "ocr"
+              ? "OCR転写と一致（原本未確認）"
+              : "原文一致を検証済み"}
           </Badge>
         ) : null}
         {evidence.extracted_by.startsWith("llm:") ? (
@@ -116,6 +123,41 @@ const EvidenceCard = ({
   );
 };
 
+const RecordCard = ({
+  record,
+  source,
+}: {
+  record: DisasterRecord;
+  source: Source | undefined;
+}) => (
+  <div className="rounded-md border border-border bg-card p-2.5">
+    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+      <Badge variant="secondary" className="text-[10px]">
+        {RECORD_RELATION_LABELS[record.relation] ?? record.relation}
+      </Badge>
+      {record.date_text ? (
+        <span className="font-mono text-[10px] text-muted-foreground">
+          {record.date_text}
+        </span>
+      ) : null}
+    </div>
+    <p className="text-xs leading-relaxed">{record.name}</p>
+    {record.quote ? (
+      <blockquote className="mt-1.5 flex gap-1.5 border-l-2 border-border pl-2 text-[11px] leading-relaxed text-muted-foreground">
+        <Quote className="mt-0.5 size-3 shrink-0 opacity-50" />
+        <span>{record.quote}</span>
+      </blockquote>
+    ) : null}
+    <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
+      {MATCH_METHOD_LABELS[record.match_method] ?? record.match_method}
+      {record.distance_km !== null && record.distance_km !== undefined
+        ? `／地点まで約${record.distance_km.toFixed(1)}km`
+        : ""}
+      {source ? `／${source.title}` : ""}
+    </p>
+  </div>
+);
+
 export function DetailPanel(props: Props) {
   const { feature } = props;
   const [detail, setDetail] = useState<ToponymDetail | null>(null);
@@ -125,7 +167,8 @@ export function DetailPanel(props: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    if (props_.evidenceLevel === 0) return;
+    // 候補（レベル0）にも、被災記録が結びついたものには詳細がある
+    if (props_.evidenceLevel === 0 && !props_.hasRecord) return;
     const load = async () => {
       try {
         const loaded = await fetchToponymDetail(props_.id);
@@ -145,7 +188,7 @@ export function DetailPanel(props: Props) {
     return () => {
       cancelled = true;
     };
-  }, [props_.id, props_.evidenceLevel]);
+  }, [props_.id, props_.evidenceLevel, props_.hasRecord]);
 
   // 選択が切り替わった直後は前の詳細が残るため、id が一致するときだけ使う
   const shown = detail?.id === props_.id ? detail : null;
@@ -175,21 +218,29 @@ export function DetailPanel(props: Props) {
             {[props_.pref, props_.municipality].filter(Boolean).join("")}
             {shown?.admin.oaza ? ` ${shown.admin.oaza}` : ""}
           </p>
+          {shown?.admin.province ? (
+            <p className="text-[11px] text-muted-foreground">
+              資料上の所在: {shown.admin.province}
+              {shown.admin.district ?? ""}
+            </p>
+          ) : null}
           {shown?.admin.historical_village ? (
             <p className="text-[11px] text-muted-foreground">
               旧村: {shown.admin.historical_village}
             </p>
           ) : null}
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 cursor-pointer"
-          onClick={props.onClose}
-          aria-label="閉じる"
-        >
-          <X className="size-4" />
-        </Button>
+        {props.hideHeaderClose ? null : (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 cursor-pointer"
+            onClick={props.onClose}
+            aria-label="閉じる"
+          >
+            <X className="size-4" />
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
@@ -208,6 +259,11 @@ export function DetailPanel(props: Props) {
           <Badge variant="outline" className="text-[10px]">
             位置精度: {PRECISION_LABELS[props_.precision]}
           </Badge>
+          {props_.hasRecord ? (
+            <Badge variant="outline" className="text-[10px]">
+              被災記録あり
+            </Badge>
+          ) : null}
           {props_.disputed ? (
             <Badge variant="destructive" className="text-[10px]">
               <TriangleAlert className="size-2.5" />
@@ -284,6 +340,9 @@ export function DetailPanel(props: Props) {
           <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] leading-relaxed">
             これは全国の住所データで表記が要素辞書に一致した候補です。出典による裏づけは
             確認していないため、災害履歴を示すとは限りません。
+            {props_.hasRecord
+              ? "この場所の被災記録は見つかっていますが、地名の由来を説明する資料は確認できていません。"
+              : ""}
           </div>
         ) : null}
 
@@ -319,21 +378,25 @@ export function DetailPanel(props: Props) {
           </div>
         ) : null}
 
-        {shown && shown.hazard_corroboration.related_disasters.length > 0 ? (
+        {shown && shown.disaster_records.length > 0 ? (
           <div>
             <h3 className="mb-1.5 text-xs font-semibold">記録された災害</h3>
-            <ul className="space-y-0.5">
-              {shown.hazard_corroboration.related_disasters.map((disaster) => (
-                <li key={disaster.name} className="text-[11px] leading-relaxed">
-                  {disaster.date ? (
-                    <span className="mr-1 font-mono text-muted-foreground">
-                      {disaster.date}
-                    </span>
-                  ) : null}
-                  {disaster.name}
-                </li>
+            <p className="mb-1.5 text-[10px] leading-snug text-muted-foreground">
+              この場所で実際に起きたと資料が記す災害。地名の由来とは別の事実として扱っている。
+            </p>
+            <div className="space-y-2">
+              {shown.disaster_records.map((record, index) => (
+                <RecordCard
+                  key={`${record.source_id}-${record.locator}-${index}`}
+                  record={record}
+                  source={
+                    record.source_id
+                      ? props.sources[record.source_id]
+                      : undefined
+                  }
+                />
               ))}
-            </ul>
+            </div>
           </div>
         ) : null}
 

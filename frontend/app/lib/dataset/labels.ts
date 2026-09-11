@@ -85,6 +85,8 @@ export const PRECISION_LABELS: Record<LocationPrecision, string> = {
   point: "地点",
   koaza: "小字",
   oaza: "大字・町丁目",
+  village: "旧村・郷の代表点",
+  feature: "山・川などの代表点",
   municipality: "市区町村",
   prefecture: "都道府県",
   unknown: "不明",
@@ -174,3 +176,18 @@ export const primaryHazard = (hazardTypes: HazardType[]): HazardType => {
 
 export const hazardColor = (hazardTypes: HazardType[]): string =>
   HAZARD_COLORS[primaryHazard(hazardTypes)];
+
+/** 記録された災害と地名の関係。根拠レベル3の内訳として示す。 */
+export const RECORD_RELATION_LABELS: Record<string, string> = {
+  named_after: "災害に由来すると資料が述べている",
+  same_place_record: "同じ場所の被災が記録されている",
+  nearby_record: "近隣の被災記録（由来とは結びつかない）",
+};
+
+/** 災害記録をどうやってこの地名に結びつけたか。 */
+export const MATCH_METHOD_LABELS: Record<string, string> = {
+  entry_text: "資料の同じ項目に記載",
+  monument_place_name: "伝承碑の本文が同じ地名を挙げている",
+  distance: "位置が近い",
+  curated: "人手で確認",
+};

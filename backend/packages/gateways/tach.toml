@@ -47,3 +47,24 @@ path = "gateways.estat"
 depends_on = [
     {path = "gateways.http"},
 ]
+
+# ndl は国立国会図書館デジタルコレクションの全文APIに接続する
+[[modules]]
+path = "gateways.ndl"
+depends_on = [
+    {path = "gateways.http"},
+]
+
+# nihu は人間文化研究機構の歴史地名データ（旧地名の座標）を取得する
+[[modules]]
+path = "gateways.nihu"
+depends_on = [
+    {path = "gateways.http"},
+]
+
+# codh は人文学オープンデータ共同利用センターの歴史地名索引を取得する
+[[modules]]
+path = "gateways.codh"
+depends_on = [
+    {path = "gateways.http"},
+]

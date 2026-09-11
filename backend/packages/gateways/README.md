@@ -26,14 +26,37 @@ backend/packages/gateways/
     │
     ├── llm/                 # LLM接続 (OpenAI等)
     │   ├── connections.py   # クライアント生成
+    │   ├── config.py        # モデル名・推論レベル・APIキー
     │   ├── models/          # データモデル
-    │   └── operations/      # LLM操作
+    │   └── operations/      # LLM操作 (generate / generate_json)
     │
-    └── aws/                 # AWS接続 (S3等)
-        ├── connections.py   # クライアント生成
-        ├── models/          # データモデル
-        └── operations/      # AWS操作
+    ├── aws/                 # AWS接続 (S3等)
+    │   ├── connections.py   # クライアント生成
+    │   ├── models/          # データモデル
+    │   └── operations/      # AWS操作
+    │
+    ├── http/                # 共有HTTPクライアント（ディスクキャッシュ・レート制限）
+    ├── gsi/                 # 国土地理院（住所検索・ハザードタイル・自然災害伝承碑）
+    ├── estat/               # e-Stat（国勢調査 小地域境界）
+    ├── ndl/                 # 国立国会図書館（次世代デジタルライブラリーの全文OCR）
+    ├── nihu/                # 人間文化研究機構（歴史地名データ）
+    ├── codh/                # 人文学オープンデータ共同利用センター（歴史地名索引）
+    └── web/                 # 一般Webページ・Wikipedia
 ```
+
+### 警鐘地名マップで使うゲートウェイ
+
+| モジュール | 取得するもの | 出典・条件 |
+|---|---|---|
+| `ndl` | 『大日本地名辞書』のコマ単位 OCR 全文とブロック外接矩形 | パブリックドメイン資料 |
+| `nihu` | 歴史地名 29.8 万件の緯度経度・読み・原本の表記 | 出典明示のうえ自由利用 |
+| `codh` | 歴史地名 8 万件の現在の住所と代表点 | CC BY 4.0 |
+| `gsi` | 自然災害伝承碑・ハザードタイル・住所検索 | 国土地理院コンテンツ利用規約 |
+| `estat` | 町丁・字等の境界ポリゴン | 政府統計の総合窓口 |
+
+`http` は共有クライアントで、応答を `data/cache/http/` に保存し、ホストごとに
+間隔を空けて要求します。一部の政府系サーバは旧方式の TLS 再ネゴシエーションを
+行うため、`OP_LEGACY_SERVER_CONNECT` を有効にしています。
 
 ---
 

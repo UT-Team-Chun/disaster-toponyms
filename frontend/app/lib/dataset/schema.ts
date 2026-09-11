@@ -31,10 +31,20 @@ export const locationPrecisionSchema = z.enum([
   "point",
   "koaza",
   "oaza",
+  "village",
+  "feature",
   "municipality",
   "prefecture",
   "unknown",
 ]);
+
+/** 記録された災害と地名の関係。 */
+export const disasterRelationSchema = z.enum([
+  "named_after",
+  "same_place_record",
+  "nearby_record",
+]);
+export type DisasterRelation = z.infer<typeof disasterRelationSchema>;
 export type LocationPrecision = z.infer<typeof locationPrecisionSchema>;
 
 /** 地図のピンが持つ軽量プロパティ。詳細は details/{id}.json から取得する。 */
@@ -47,6 +57,11 @@ export const toponymPropertiesSchema = z.object({
   municipality: z.string().nullable().optional(),
   hazardTypes: z.array(hazardTypeSchema).default([]),
   evidenceLevel: z.number().int().min(0).max(3),
+  /** 出典が地名の由来について述べている強さ。災害記録との対応は含まない。 */
+  originLevel: z.number().int().min(0).max(2).default(0),
+  /** この場所で起きた災害の記録があるか。根拠レベルとは別の軸。 */
+  hasRecord: z.boolean().default(false),
+  recordRelation: disasterRelationSchema.nullable().optional(),
   status: toponymStatusSchema,
   disputed: z.boolean().default(false),
   precision: locationPrecisionSchema,
@@ -141,8 +156,29 @@ export const evidenceSchema = z.object({
   level: z.number().int().min(0).max(3),
   extracted_by: z.string().default("human"),
   quote_verified: z.boolean().default(false),
+  /** 引用を突き合わせた相手。ocr は原本の版面ではなく OCR テキストとの一致。 */
+  quote_medium: z.enum(["text", "ocr"]).default("text"),
 });
 export type Evidence = z.infer<typeof evidenceSchema>;
+
+/** その場所で実際に起きたと記録されている災害。 */
+export const disasterRecordSchema = z.object({
+  relation: disasterRelationSchema,
+  name: z.string(),
+  date_text: z.string().nullable().optional(),
+  hazard_types: z.array(hazardTypeSchema).default([]),
+  source_id: z.string().nullable().optional(),
+  locator: z.string().nullable().optional(),
+  quote: z.string().nullable().optional(),
+  quote_verified: z.boolean().default(false),
+  quote_medium: z.enum(["text", "ocr"]).default("text"),
+  match_method: z
+    .enum(["entry_text", "monument_place_name", "distance", "curated"])
+    .default("curated"),
+  distance_km: z.number().nullable().optional(),
+  extracted_by: z.string().default("human"),
+});
+export type DisasterRecord = z.infer<typeof disasterRecordSchema>;
 
 export const toponymDetailSchema = z.object({
   id: z.string(),
@@ -157,6 +193,8 @@ export const toponymDetailSchema = z.object({
     municipality: z.string().nullable().optional(),
     oaza: z.string().nullable().optional(),
     koaza: z.string().nullable().optional(),
+    province: z.string().nullable().optional(),
+    district: z.string().nullable().optional(),
     historical_village: z.string().nullable().optional(),
   }),
   location: z
@@ -183,6 +221,8 @@ export const toponymDetailSchema = z.object({
     .default([]),
   etymology_summary: z.string().default(""),
   evidence: z.array(evidenceSchema).default([]),
+  disaster_records: z.array(disasterRecordSchema).default([]),
+  origin_level: z.number().int().min(0).max(2).default(0),
   evidence_level: z.number().int().min(0).max(3),
   evidenceLevelLabel: z.string().default(""),
   disputed: z.boolean().default(false),
@@ -196,15 +236,6 @@ export const toponymDetailSchema = z.object({
     storm_surge_zone: z.boolean().nullable().optional(),
     avalanche_risk: z.boolean().nullable().optional(),
     nearest_monument_ids: z.array(z.string()).default([]),
-    related_disasters: z
-      .array(
-        z.object({
-          date: z.string().nullable().optional(),
-          name: z.string(),
-          source_id: z.string().nullable().optional(),
-        }),
-      )
-      .default([]),
     sampled_at: z.string().nullable().optional(),
   }),
   review: z.object({
@@ -263,13 +294,20 @@ export const statsSchema = z.object({
   byHazard: z.record(z.string(), z.number()),
   byPrefecture: z.record(
     z.string(),
-    z.object({ total: z.number(), documented: z.number() }),
+    z.object({
+      total: z.number(),
+      documented: z.number(),
+      level3: z.number().default(0),
+    }),
   ),
   byElement: z.record(z.string(), z.number()),
   candidatesByPrefecture: z.record(z.string(), z.number()),
   areasTotal: z.number().default(0),
   areasByPrefecture: z.record(z.string(), z.number()).default({}),
   withAreaTotal: z.number().default(0),
+  withDisasterRecord: z.number().default(0),
+  candidatesWithRecord: z.number().default(0),
+  l3ByRelation: z.record(z.string(), z.number()).default({}),
 });
 export type Stats = z.infer<typeof statsSchema>;
 

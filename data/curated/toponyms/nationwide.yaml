@@ -53,11 +53,13 @@ toponyms:
         claim: 災害後の報道で旧地名「八木蛇落地悪谷」が広く知られるようになった経緯。
         quote: >-
           八木地区がかつて「八木蛇落地悪谷（やぎじゃらくじあしだに）」と呼ばれていたことは、災害発生から約1週間後の8月26日、フジテレビの情報番組「とくダネ！」が伝えて反響を呼びました。
-    hazard_corroboration:
-      related_disasters:
-        - date: "2014-08-20"
-          name: 平成26年8月豪雨（広島土砂災害）
-          source_id: yagi_thepage_2014
+    disaster_records:
+      - relation: same_place_record
+        name: 平成26年8月豪雨（広島土砂災害）
+        date_text: "2014-08-20"
+        hazard_types: [debris_flow, slope_failure]
+        source_id: yagi_thepage_2014
+        match_method: curated
 
   - name: 蛇抜け
     reading: ジャヌケ
@@ -102,11 +104,13 @@ toponyms:
         claim: 1953年の伊勢小屋沢の蛇抜けで3人が犠牲となり、記念の像と碑が建てられた。
         quote: >-
           町内に『悲しめる乙女の像』が建立されるきっかけとなったのが、1953年（昭和28年）7月20日の午前8時頃に発生した、伊勢小屋沢の蛇抜けである。
-    hazard_corroboration:
-      related_disasters:
-        - date: "1953-07-20"
-          name: 伊勢小屋沢の蛇抜け（死者3名）
-          source_id: wikipedia_nagiso
+    disaster_records:
+      - relation: named_after
+        name: 伊勢小屋沢の蛇抜け（死者3名）
+        date_text: "1953-07-20"
+        hazard_types: [debris_flow]
+        source_id: wikipedia_nagiso
+        match_method: curated
 
   - name: 浪分
     reading: ナミワケ
@@ -141,11 +145,13 @@ toponyms:
         claim: 津波除けの神徳から「浪分大明神」と呼ばれるようになった。
         quote: >-
           これらの津波に関する伝承は、稲荷神社を「津波除け」の神社としての神徳を高めることにつながり、「浪分大明神」という名で呼ばれるようになった。
-    hazard_corroboration:
-      related_disasters:
-        - date: "1611"
-          name: 慶長三陸地震津波
-          source_id: wikipedia_namiwake
+    disaster_records:
+      - relation: named_after
+        name: 慶長三陸地震津波
+        date_text: "1611"
+        hazard_types: [tsunami]
+        source_id: wikipedia_namiwake
+        match_method: curated
 
   - name: ツリバチナガレ
     reading: ツリバチナガレ
@@ -211,17 +217,25 @@ toponyms:
         claim: 繰り返す津波被害から「津波太郎」の異名が生まれ、1611年に村が全滅した記録がある。
         quote: >-
           田老は「津波太郎（田老)」の異名を付けられるほど古くから津波被害が多く、江戸時代初期の1611年に起きた慶長三陸地震津波で村がほとんど全滅したとの記録がある。
-    hazard_corroboration:
-      related_disasters:
-        - date: "1896-06-15"
-          name: 明治三陸地震津波（死者1859人）
-          source_id: wikipedia_taro
-        - date: "1933-03-03"
-          name: 昭和三陸地震津波（死者911人）
-          source_id: wikipedia_taro
-        - date: "2011-03-11"
-          name: 東北地方太平洋沖地震津波
-          source_id: wikipedia_taro
+    disaster_records:
+      - relation: same_place_record
+        name: 明治三陸地震津波（死者1859人）
+        date_text: "1896-06-15"
+        hazard_types: [tsunami]
+        source_id: wikipedia_taro
+        match_method: curated
+      - relation: same_place_record
+        name: 昭和三陸地震津波（死者911人）
+        date_text: "1933-03-03"
+        hazard_types: [tsunami]
+        source_id: wikipedia_taro
+        match_method: curated
+      - relation: same_place_record
+        name: 東北地方太平洋沖地震津波
+        date_text: "2011-03-11"
+        hazard_types: [tsunami]
+        source_id: wikipedia_taro
+        match_method: curated
 
   - name: あし原町
     reading: アシハラチョウ
@@ -247,11 +261,13 @@ toponyms:
         claim: 東海豪雨で新川堤防が決壊した地点の地名が「あし原町」であり、対岸は「阿原」である。
         quote: >-
           中根洋治氏によれば平成 12 年の東海豪雨では名古屋市西区で新川の堤防が決壊しましたが、その地名は「あし原町」であり、対岸の地名は清須市（旧新川町）の「阿原」とされます。
-    hazard_corroboration:
-      related_disasters:
-        - date: "2000-09"
-          name: 東海豪雨（新川堤防決壊）
-          source_id: toyokawa_koaza_bousai
+    disaster_records:
+      - relation: same_place_record
+        name: 東海豪雨（新川堤防決壊）
+        date_text: "2000-09"
+        hazard_types: [flood]
+        source_id: toyokawa_koaza_bousai
+        match_method: curated
 
   - name: 阿原
     reading: アワラ

@@ -67,6 +67,16 @@ class ToponymPaths(BaseSettings):
         return self.raw_dir / "gsi"
 
     @property
+    def nihu_dir(self) -> Path:
+        """Archive of the NIHU historical place-name dataset."""
+        return self.raw_dir / "nihu"
+
+    @property
+    def codh_dir(self) -> Path:
+        """CSV index of historical place names published by CODH."""
+        return self.raw_dir / "codh"
+
+    @property
     def boundary_dir(self) -> Path:
         """Census small-area boundary shapefiles, one directory per prefecture."""
         return self.raw_dir / "estat_boundaries"

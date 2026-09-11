@@ -32,11 +32,43 @@ LocationPrecision = Literal[
     "point",
     "koaza",
     "oaza",
+    "village",
+    "feature",
     "municipality",
     "prefecture",
     "unknown",
 ]
 ReviewStatus = Literal["auto", "reviewed", "rejected"]
+
+#: How a quote was obtained. Optical character recognition can misread a glyph,
+#: so a quote verified against OCR output is not the same as one verified
+#: against a transcription a person checked.
+QuoteMedium = Literal["text", "ocr"]
+
+#: How a recorded disaster relates to the place name.
+#:
+#: ``named_after`` is the strongest: the source says the name itself comes from
+#: the event. ``same_place_record`` says the same place is recorded as having
+#: been hit, which corroborates a documented origin without explaining it.
+#: ``nearby_record`` is proximity only and never raises the evidence level.
+DisasterRelation = Literal["named_after", "same_place_record", "nearby_record"]
+
+#: How the place in a disaster record was tied to this toponym.
+RecordMatchMethod = Literal["entry_text", "monument_place_name", "distance", "curated"]
+
+#: Evidence kinds that can state where a name comes from.
+ORIGIN_EVIDENCE_KINDS: frozenset[str] = frozenset(
+    {
+        "gazetteer",
+        "local_history",
+        "legend",
+        "academic",
+        "official",
+        "news",
+        "manual",
+        "monument",
+    },
+)
 
 
 class Evidence(BaseModel):
@@ -59,10 +91,19 @@ class Evidence(BaseModel):
         default=False,
         description="True when the quote was matched character-for-character in the source text",
     )
+    quote_medium: QuoteMedium = Field(
+        default="text",
+        description="Whether the quote was checked against a transcription or against OCR output",
+    )
 
 
 class AdminArea(BaseModel):
-    """Administrative location of a toponym."""
+    """Administrative location of a toponym.
+
+    Historical sources file a place under the old province and district, which
+    are what identify it in the source; the prefecture and municipality are what
+    a reader can look up today. Both are kept.
+    """
 
     pref_code: str | None = None
     pref: str | None = None
@@ -70,6 +111,8 @@ class AdminArea(BaseModel):
     municipality: str | None = None
     oaza: str | None = None
     koaza: str | None = None
+    province: str | None = Field(default=None, description="Old province, for example 肥後")
+    district: str | None = Field(default=None, description="Old district (郡)")
     historical_village: str | None = Field(
         default=None,
         description="Pre-Meiji or pre-merger village the name belonged to",
@@ -94,12 +137,30 @@ class ElementRef(BaseModel):
     meaning: str | None = None
 
 
-class RelatedDisaster(BaseModel):
-    """A recorded disaster tied to the place."""
+class DisasterRecord(BaseModel):
+    """A recorded disaster tied to the place, and how the tie was made.
 
-    date: str | None = None
+    A name whose origin a source explains, and a place a disaster is recorded at,
+    are two different facts. Keeping the relation explicit is what stops the
+    second from being reported as the first.
+    """
+
+    relation: DisasterRelation
     name: str
+    date_text: str | None = Field(default=None, description="Date as printed in the source")
+    hazard_types: list[HazardType] = Field(default_factory=list)
     source_id: str | None = None
+    locator: str | None = None
+    quote: str | None = None
+    quote_verified: bool = False
+    quote_medium: QuoteMedium = "text"
+    match_method: RecordMatchMethod = "curated"
+    distance_km: float | None = None
+    extracted_by: str = "human"
+
+    def corroborates_origin(self) -> bool:
+        """Return True when the record can raise a documented origin to level 3."""
+        return self.relation in {"named_after", "same_place_record"}
 
 
 class HazardCorroboration(BaseModel):
@@ -117,7 +178,6 @@ class HazardCorroboration(BaseModel):
     storm_surge_zone: bool | None = None
     avalanche_risk: bool | None = None
     nearest_monument_ids: list[str] = Field(default_factory=list)
-    related_disasters: list[RelatedDisaster] = Field(default_factory=list)
     sampled_at: str | None = None
 
     def designated_zones(self) -> list[str]:
@@ -162,6 +222,13 @@ class Toponym(BaseModel):
     elements: list[ElementRef] = Field(default_factory=list)
     etymology_summary: str = ""
     evidence: list[Evidence] = Field(default_factory=list)
+    disaster_records: list[DisasterRecord] = Field(default_factory=list)
+    origin_level: int = Field(
+        default=0,
+        ge=0,
+        le=2,
+        description="What the sources say about the origin of the name alone",
+    )
     evidence_level: int = Field(default=0, ge=0, le=3)
     disputed: bool = Field(
         default=False,
@@ -175,3 +242,19 @@ class Toponym(BaseModel):
     def primary_hazard(self) -> HazardType | None:
         """Return the hazard type used for map styling."""
         return self.hazard_types[0] if self.hazard_types else None
+
+    def has_disaster_record(self) -> bool:
+        """Return True when any disaster is recorded for this place."""
+        return bool(self.disaster_records)
+
+    def record_relation(self) -> DisasterRelation | None:
+        """Return the strongest relation any recorded disaster has to the name."""
+        order: tuple[DisasterRelation, ...] = (
+            "named_after",
+            "same_place_record",
+            "nearby_record",
+        )
+        for relation in order:
+            if any(record.relation == relation for record in self.disaster_records):
+                return relation
+        return None

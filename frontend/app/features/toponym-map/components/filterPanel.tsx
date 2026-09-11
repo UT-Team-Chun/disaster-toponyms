@@ -90,7 +90,7 @@ const Chip = ({
     title={title}
     aria-pressed={active}
     className={[
-      "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors",
+      "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] transition-colors md:min-h-0 md:px-2 md:py-1",
       active
         ? "border-primary bg-primary text-primary-foreground"
         : "border-border bg-background text-foreground hover:bg-accent",
@@ -242,6 +242,17 @@ export function FilterPanel(props: Props) {
             title="現在のハザードマップで警戒区域・浸水想定区域に入るもの"
           >
             現行ハザード区域内
+          </Chip>
+          <Chip
+            active={filters.onlyWithRecord}
+            onClick={() => update({ onlyWithRecord: !filters.onlyWithRecord })}
+            title="その場所で実際に起きた災害の記録が資料から見つかっているもの"
+          >
+            被災記録あり
+            <span className="opacity-60">
+              {(stats?.withDisasterRecord ?? 0) +
+                (stats?.candidatesWithRecord ?? 0)}
+            </span>
           </Chip>
         </div>
       </Section>

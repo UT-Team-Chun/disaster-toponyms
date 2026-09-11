@@ -1,7 +1,8 @@
 import type maplibregl from "maplibre-gl";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ListFilter, PanelLeftClose, PanelLeftOpen, Rows3 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { BottomSheet } from "~/components/ui/bottomSheet";
 import { Button } from "~/components/ui/button";
 import { SiteHeader } from "~/components/ui/siteHeader";
 import { DetailPanel } from "~/features/toponym-map/components/detailPanel";
@@ -9,6 +10,10 @@ import { FilterPanel } from "~/features/toponym-map/components/filterPanel";
 import { MapView } from "~/features/toponym-map/components/mapView";
 import { ResultList } from "~/features/toponym-map/components/resultList";
 import { useViewState } from "~/features/toponym-map/hooks/useFilters";
+import {
+  useIsDesktop,
+  useIsWide,
+} from "~/features/toponym-map/hooks/useMediaQuery";
 import {
   useAreas,
   useCandidates,
@@ -19,6 +24,9 @@ import { AREA_MIN_ZOOM } from "~/features/toponym-map/lib/mapStyle";
 import { fetchSources } from "~/lib/dataset/client";
 import { applyFilters } from "~/lib/dataset/filtering";
 import type { Source, ToponymFeature } from "~/lib/dataset/schema";
+
+/** 狭い画面で開いているシート。詳細が選ばれているときは詳細が優先される。 */
+type Sheet = "filters" | "list" | null;
 
 /**
  * 表示範囲に重なる都道府県コードを、読み込み済みの地点の分布から求める。
@@ -42,6 +50,8 @@ const prefCodesInBounds = (
 
 export function ToponymMap() {
   const data = useToponymData();
+  const isDesktop = useIsDesktop();
+  const isWide = useIsWide();
   const {
     view,
     setFilters,
@@ -62,6 +72,7 @@ export function ToponymMap() {
     null,
   );
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sheet, setSheet] = useState<Sheet>(null);
   const [sources, setSources] = useState<Record<string, Source>>({});
 
   useEffect(() => {
@@ -154,6 +165,7 @@ export function ToponymMap() {
     (id: string | null) => {
       setSelectedId(id);
       if (!id) return;
+      setSheet(null);
       centeredRef.current = true;
       const feature =
         data.toponyms.find((item) => item.properties.id === id) ??
@@ -193,39 +205,52 @@ export function ToponymMap() {
     mapRef.current?.jumpTo({ center: feature.geometry.coordinates, zoom: 13 });
   }, [mapReady, view.selectedId, data.toponyms]);
 
+  // タブレットの幅で絞り込みと詳細を同時に開くと地図が読めなくなるので、
+  // 詳細を開いている間は絞り込みを畳む。
+  const showSidebar =
+    isDesktop && sidebarOpen && (isWide || selectedFeature === null);
+
+  const visibleCount = filteredToponyms.length + filteredCandidates.length;
+  const resultRows = useMemo(
+    () => [...filteredToponyms, ...filteredCandidates],
+    [filteredToponyms, filteredCandidates],
+  );
+
+  const filterPanel = (
+    <FilterPanel
+      filters={view.filters}
+      stats={data.stats}
+      elements={data.elements}
+      baseMap={view.baseMap}
+      hazardLayers={view.hazardLayers}
+      showCandidates={view.showCandidates}
+      showMonuments={view.showMonuments}
+      showAreas={view.showAreas}
+      areasAvailable={areasEnabled}
+      visibleCount={visibleCount}
+      onFiltersChange={setFilters}
+      onBaseMapChange={setBaseMap}
+      onHazardLayersChange={setHazardLayers}
+      onShowCandidatesChange={setShowCandidates}
+      onShowMonumentsChange={setShowMonuments}
+      onShowAreasChange={setShowAreas}
+      onReset={reset}
+    />
+  );
+
   return (
     <div className="flex h-dvh flex-col bg-background">
       <SiteHeader builtAt={data.meta?.builtAt ?? null} />
 
       <div className="relative flex min-h-0 flex-1">
-        {sidebarOpen ? (
+        {showSidebar ? (
           <aside className="flex w-[19rem] shrink-0 flex-col border-r border-border bg-sidebar">
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <FilterPanel
-                filters={view.filters}
-                stats={data.stats}
-                elements={data.elements}
-                baseMap={view.baseMap}
-                hazardLayers={view.hazardLayers}
-                showCandidates={view.showCandidates}
-                showMonuments={view.showMonuments}
-                showAreas={view.showAreas}
-                areasAvailable={areasEnabled}
-                visibleCount={
-                  filteredToponyms.length + filteredCandidates.length
-                }
-                onFiltersChange={setFilters}
-                onBaseMapChange={setBaseMap}
-                onHazardLayersChange={setHazardLayers}
-                onShowCandidatesChange={setShowCandidates}
-                onShowMonumentsChange={setShowMonuments}
-                onShowAreasChange={setShowAreas}
-                onReset={reset}
-              />
+              {filterPanel}
               <div className="border-t border-border">
                 <h3 className="px-3 py-2 text-xs font-semibold">結果一覧</h3>
                 <ResultList
-                  features={[...filteredToponyms, ...filteredCandidates]}
+                  features={resultRows}
                   selectedId={view.selectedId}
                   onSelect={handleSelect}
                 />
@@ -251,19 +276,21 @@ export function ToponymMap() {
             onMapReady={handleMapReady}
           />
 
-          <Button
-            variant="secondary"
-            size="icon-sm"
-            className="absolute top-2 left-2 z-10 cursor-pointer shadow-sm"
-            onClick={() => setSidebarOpen((open) => !open)}
-            aria-label={sidebarOpen ? "パネルを閉じる" : "パネルを開く"}
-          >
-            {sidebarOpen ? (
-              <PanelLeftClose className="size-4" />
-            ) : (
-              <PanelLeftOpen className="size-4" />
-            )}
-          </Button>
+          {isDesktop ? (
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              className="absolute top-2 left-2 z-10 cursor-pointer shadow-sm"
+              onClick={() => setSidebarOpen((open) => !open)}
+              aria-label={showSidebar ? "パネルを閉じる" : "パネルを開く"}
+            >
+              {showSidebar ? (
+                <PanelLeftClose className="size-4" />
+              ) : (
+                <PanelLeftOpen className="size-4" />
+              )}
+            </Button>
+          ) : null}
 
           {data.loading ? (
             <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center">
@@ -282,22 +309,82 @@ export function ToponymMap() {
           ) : null}
 
           {view.showAreas && !areasEnabled ? (
-            <div className="pointer-events-none absolute bottom-10 left-1/2 z-10 -translate-x-1/2">
-              <span className="rounded-md bg-card/95 px-2 py-1 text-[11px] shadow-sm">
+            <div className="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4 md:bottom-10">
+              <span className="rounded-md bg-card/95 px-2 py-1 text-center text-[11px] shadow-sm">
                 地名がカバーする範囲は、拡大すると表示されます
               </span>
             </div>
           ) : null}
+
+          {/* 狭い画面では、地図を隠さずに絞り込みと一覧を開けるようにする */}
+          {!isDesktop ? (
+            <div className="absolute inset-x-0 bottom-0 z-20 flex gap-2 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+              <Button
+                variant="secondary"
+                className="h-11 flex-1 cursor-pointer shadow-lg"
+                onClick={() => setSheet("filters")}
+              >
+                <ListFilter className="size-4" />
+                絞り込み
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-11 flex-1 cursor-pointer shadow-lg"
+                onClick={() => setSheet("list")}
+              >
+                <Rows3 className="size-4" />
+                一覧 {visibleCount}
+              </Button>
+            </div>
+          ) : null}
         </div>
 
-        {selectedFeature ? (
-          <aside className="absolute inset-y-0 right-0 z-20 w-[21rem] max-w-[calc(100%-2rem)] border-l border-border bg-card shadow-lg md:relative md:shadow-none">
+        {selectedFeature && isDesktop ? (
+          <aside className="w-[21rem] shrink-0 border-l border-border bg-card">
             <DetailPanel
               feature={selectedFeature}
               sources={sources}
               onClose={() => setSelectedId(null)}
             />
           </aside>
+        ) : null}
+
+        {!isDesktop ? (
+          <>
+            <BottomSheet
+              title="絞り込みと表示"
+              open={sheet === "filters" && !selectedFeature}
+              onClose={() => setSheet(null)}
+            >
+              {filterPanel}
+            </BottomSheet>
+            <BottomSheet
+              title={`結果一覧（${visibleCount}件）`}
+              open={sheet === "list" && !selectedFeature}
+              onClose={() => setSheet(null)}
+            >
+              <ResultList
+                features={resultRows}
+                selectedId={view.selectedId}
+                onSelect={handleSelect}
+              />
+            </BottomSheet>
+            <BottomSheet
+              title="地名の詳細"
+              open={Boolean(selectedFeature)}
+              heightClass="h-[78dvh]"
+              onClose={() => setSelectedId(null)}
+            >
+              {selectedFeature ? (
+                <DetailPanel
+                  feature={selectedFeature}
+                  sources={sources}
+                  onClose={() => setSelectedId(null)}
+                  hideHeaderClose
+                />
+              ) : null}
+            </BottomSheet>
+          </>
         ) : null}
       </div>
     </div>

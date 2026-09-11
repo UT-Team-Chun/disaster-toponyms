@@ -7,6 +7,8 @@ walks a fallback chain and always records how precise the answer is.
 from __future__ import annotations
 
 import csv
+import math
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -49,6 +51,25 @@ def in_japan(lat: float, lon: float) -> bool:
     return LAT_MIN <= lat <= LAT_MAX and LON_MIN <= lon <= LON_MAX
 
 
+#: Side of the lookup grid in degrees, roughly 11 km at Japanese latitudes.
+GRID_STEP: Final = 0.1
+#: Coordinates further than this from every address are left without an address.
+MAX_NEAREST_KM: Final = 25.0
+_KM_PER_DEGREE: Final = 111.0
+
+
+@dataclass(frozen=True)
+class AddressPoint:
+    """One large-section address with its representative coordinate."""
+
+    pref: str
+    municipality: str
+    municipality_code: str
+    oaza: str
+    lat: float
+    lon: float
+
+
 @dataclass
 class GeoloniaIndex:
     """Lookup tables built from the Geolonia nationwide address table."""
@@ -57,6 +78,60 @@ class GeoloniaIndex:
     by_koaza: dict[tuple[str, str, str], tuple[float, float]] = field(default_factory=dict)
     by_municipality: dict[tuple[str, str], tuple[float, float]] = field(default_factory=dict)
     municipality_codes: dict[tuple[str, str], str] = field(default_factory=dict)
+    #: Large-section points bucketed by a coarse grid, for nearest-point search.
+    grid: dict[tuple[int, int], list[AddressPoint]] = field(default_factory=dict)
+    #: Folded names present in each municipality, used to tell a surviving name
+    #: from one that only the historical sources still carry.
+    names_by_municipality: dict[tuple[str, str], set[str]] = field(default_factory=dict)
+
+    def nearest_address(self, lat: float, lon: float) -> AddressPoint | None:
+        """Find the closest large-section address to a coordinate.
+
+        A historical entry carries a coordinate but no modern address, and the
+        present-day municipality is what a reader can look up, so it is taken
+        from the nearest address point rather than guessed from the old district.
+
+        Args:
+            lat: Latitude in degrees.
+            lon: Longitude in degrees.
+
+        Returns:
+            The closest address within :data:`MAX_NEAREST_KM`, or None.
+
+        """
+        if not self.grid:
+            return None
+        cell = (int(lat / GRID_STEP), int(lon / GRID_STEP))
+        best: AddressPoint | None = None
+        best_distance = float("inf")
+        rings = int(MAX_NEAREST_KM / (GRID_STEP * _KM_PER_DEGREE)) + 1
+        for ring in range(rings + 1):
+            for point in self._points_in_ring(cell, ring):
+                distance = (point.lat - lat) ** 2 + (
+                    (point.lon - lon) * math.cos(math.radians(lat))
+                ) ** 2
+                if distance < best_distance:
+                    best, best_distance = point, distance
+            if best is not None and ring > 0:
+                break
+        if best is None or best_distance**0.5 * _KM_PER_DEGREE > MAX_NEAREST_KM:
+            return None
+        return best
+
+    def _points_in_ring(self, cell: tuple[int, int], ring: int) -> Iterator[AddressPoint]:
+        """Yield every address point in the cells at a given ring from a cell."""
+        for delta_lat in range(-ring, ring + 1):
+            for delta_lon in range(-ring, ring + 1):
+                if ring > 0 and max(abs(delta_lat), abs(delta_lon)) != ring:
+                    continue
+                yield from self.grid.get((cell[0] + delta_lat, cell[1] + delta_lon), [])
+
+    def has_name(self, pref: str, municipality: str, name: str) -> bool:
+        """Return True when a municipality still has a section with this name."""
+        names = self.names_by_municipality.get(
+            (comparison_key(pref), comparison_key(municipality))
+        )
+        return bool(names and comparison_key(name) in names)
 
     def _exact(
         self,
@@ -143,10 +218,26 @@ def _load_index(csv_path: Path) -> GeoloniaIndex:
             koaza = row["小字・通称名"]
 
             index.municipality_codes.setdefault((pref, municipality), row["市区町村コード"])
+            names = index.names_by_municipality.setdefault((pref, municipality), set())
             if oaza:
                 index.by_oaza.setdefault((pref, municipality, comparison_key(oaza)), (lat, lon))
+                names.add(comparison_key(oaza))
+                index.grid.setdefault(
+                    (int(lat / GRID_STEP), int(lon / GRID_STEP)),
+                    [],
+                ).append(
+                    AddressPoint(
+                        pref=row["都道府県名"],
+                        municipality=row["市区町村名"],
+                        municipality_code=row["市区町村コード"],
+                        oaza=oaza,
+                        lat=lat,
+                        lon=lon,
+                    ),
+                )
             if koaza:
                 index.by_koaza.setdefault((pref, municipality, comparison_key(koaza)), (lat, lon))
+                names.add(comparison_key(koaza))
             total_lat, total_lon, count = sums.get((pref, municipality), (0.0, 0.0, 0))
             sums[(pref, municipality)] = (total_lat + lat, total_lon + lon, count + 1)
 

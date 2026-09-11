@@ -15,23 +15,53 @@ from gateways.gsi.models.monument import DisasterMonument
 from gateways.gsi.operations.monuments import load_monuments
 from gateways.llm.config import LLMConfig
 from gateways.llm.operations.llm_operations import LLMOperations
+from gateways.ndl.operations.fulltext import fetch_book_pages
+from gateways.nihu.models.place import (
+    GAZETTEER_SOURCE,
+    OLD_MAP_SOURCE,
+    HistoricalPlace,
+)
+from gateways.nihu.operations.gazetteer import (
+    download_archive,
+    load_historical_places,
+    load_spelling_pairs,
+)
 
+from alg.core.toponyms.parsers.dainihon_chimei import deduplicate
 from alg.core.toponyms.parsers.layout import strip_running_numbers
 from alg.core.toponyms.pipelines.attach_areas import attach_areas
 from alg.core.toponyms.pipelines.build_outputs import DatasetBundle, write_outputs
 from alg.core.toponyms.pipelines.corroborate_hazard import corroborate
+from alg.core.toponyms.pipelines.extract_monument_records import (
+    MonumentSetup,
+    extract_monument_mentions,
+)
 from alg.core.toponyms.pipelines.extract_prose_evidence import (
     ProseDocument,
     extract_from_document,
 )
-from alg.core.toponyms.pipelines.generate_candidates import screen_address_table
+from alg.core.toponyms.pipelines.generate_candidates import (
+    screen_address_table,
+    screen_old_maps,
+)
+from alg.core.toponyms.pipelines.ingest_historical_gazetteer import (
+    GAZETTEER_VOLUMES,
+    ExtractionSetup,
+    GazetteerStats,
+    extract_entries,
+    parse_volume,
+    screen,
+)
 from alg.core.toponyms.pipelines.ingest_local_history import KIRYU, build_from_gazetteer
+from alg.core.toponyms.pipelines.link_disaster_records import link_mentions
 from alg.core.toponyms.tools.curated import (
     load_curated_toponyms,
     load_elements,
     load_sources,
 )
+from alg.core.toponyms.tools.disaster_records import DisasterMention
 from alg.core.toponyms.tools.geocode import resolve_location
+from alg.core.toponyms.tools.historical_index import build_index
 from alg.core.toponyms.tools.paths import ToponymPaths, get_paths
 from alg.models.area import MatchedArea
 from alg.models.build_report import BuildReport, StageReport
@@ -70,6 +100,19 @@ PROSE_DOCUMENTS: tuple[tuple[str, ProseDocument], ...] = (
         ),
     ),
     (
+        "local_history/kagoshima_saigai_chimei.txt",
+        ProseDocument(
+            doc_id="kagoshima_saigai_chimei",
+            source_id="iwamatsu_saigai_chimei",
+            source_title="災害地名（鹿児島大学理学部 岩松暉）",
+            text="",
+            evidence_kind="academic",
+            pref_hint="鹿児島県",
+            municipality_hint=None,
+            locator="https://www.sci.kagoshima-u.ac.jp/oyo/name_r.html",
+        ),
+    ),
+    (
         "local_history/takahashi_saigai_chimei.txt",
         ProseDocument(
             doc_id="takahashi_saigai_chimei",
@@ -94,6 +137,14 @@ class BuildOptions:
     sample_hazard_zones: bool = True
     include_candidates: bool = True
     attach_area_polygons: bool = True
+    #: Read the national gazetteer, which is what makes coverage nationwide.
+    include_gazetteer: bool = True
+    #: Restrict the gazetteer to these old provinces, for a trial run.
+    gazetteer_provinces: frozenset[str] | None = None
+    #: Read the disaster monuments for the places they say were hit.
+    link_disaster_records: bool = True
+    #: Extraction requests in flight at once.
+    llm_workers: int = 12
     #: Polygon simplification tolerance in degrees; larger means smaller files.
     area_tolerance: float = 0.0001
     #: Lowest element specificity kept when screening the address table.
@@ -111,14 +162,19 @@ def _monuments(options: BuildOptions) -> list[DisasterMonument]:
     return []
 
 
-def _llm_operations(options: BuildOptions) -> tuple[LLMOperations | None, str]:
+def _llm_operations(options: BuildOptions) -> tuple[LLMOperations | None, str, str | None]:
     """Build the LLM client when a key is configured and extraction is enabled."""
     config = LLMConfig()
     if not options.use_llm or not config.openai_api_key:
-        return None, config.llm_model
+        return None, config.llm_model, config.llm_reasoning_effort
     return (
-        LLMOperations(api_key=config.openai_api_key, model=config.llm_model),
+        LLMOperations(
+            api_key=config.openai_api_key,
+            model=config.llm_model,
+            reasoning_effort=config.llm_reasoning_effort,
+        ),
         config.llm_model,
+        config.llm_reasoning_effort,
     )
 
 
@@ -165,7 +221,7 @@ def _ingest_prose(
     report: BuildReport,
 ) -> list[Toponym]:
     """Mine the prose sources for evidence-backed records."""
-    llm, model_name = _llm_operations(options)
+    llm, model_name, effort = _llm_operations(options)
     records: list[Toponym] = []
     messages: list[str] = []
     produced = 0
@@ -190,6 +246,7 @@ def _ingest_prose(
             dictionary,
             llm=llm,
             model_name=model_name,
+            effort=effort,
         )
         records.extend(found)
         produced += len(found)
@@ -202,6 +259,117 @@ def _ingest_prose(
         StageReport(stage="prose", produced=produced, skipped=skipped, messages=messages),
     )
     return records
+
+
+def _ingest_gazetteer(
+    options: BuildOptions,
+    dictionary: ElementDictionary,
+    report: BuildReport,
+) -> tuple[list[Toponym], list[DisasterMention]]:
+    """Read the national gazetteer, which is what makes coverage nationwide."""
+    if not options.include_gazetteer:
+        return [], []
+    archive = options.paths.nihu_dir / "nihu_rekishi_chimei.zip"
+    if not archive.exists():
+        if not options.use_network_geocoding:
+            report.add_stage(
+                StageReport(
+                    stage="gazetteer",
+                    messages=["未取得: 歴史地名データ（make download-data を実行してください）"],
+                ),
+            )
+            return [], []
+        archive = download_archive(options.paths.nihu_dir)
+
+    places = load_historical_places(archive, sources=frozenset({GAZETTEER_SOURCE}))
+    # The gazetteer half records the printed spelling for barely a thousand of
+    # its entries, so the pre-war characters are learned from the whole dataset.
+    index = build_index(places, pairs=load_spelling_pairs(archive))
+    llm, model_name, effort = _llm_operations(options)
+    stats = GazetteerStats()
+
+    entries = []
+    for pid, _label in GAZETTEER_VOLUMES:
+        pages = fetch_book_pages(pid)
+        entries.extend(parse_volume(pages, index, pid, stats))
+    unique = list(deduplicate(entries))
+    if options.gazetteer_provinces is not None:
+        unique = [entry for entry in unique if entry.province in options.gazetteer_provinces]
+    screened = screen(unique, stats)
+    records, mentions = extract_entries(
+        screened,
+        index,
+        dictionary,
+        ExtractionSetup(
+            stats=stats,
+            llm=llm,
+            model_name=model_name,
+            effort=effort,
+            workers=options.llm_workers,
+        ),
+    )
+    report.add_stage(
+        StageReport(
+            stage="gazetteer",
+            produced=len(records),
+            skipped=stats.screened_out + stats.excluded_kind,
+            messages=[
+                f"コマ {stats.parse.frames} / 見出し {stats.parse.headings} / "
+                f"索引一致 {stats.parse.matched}（同名 {stats.parse.ambiguous}）",
+                f"項目 {stats.entries}: 地名以外 {stats.excluded_kind} / "
+                f"本文なし {stats.screened_out} / 読み取り {len(screened)}",
+                f"抽出 実行{stats.requested} キャッシュ{stats.cached} / "
+                f"候補 {stats.findings} / 対象外の地名 {stats.unknown_place} / "
+                f"由来あり {stats.origin_found} / 不採用 {stats.quote_rejected} / "
+                f"異説のみ {stats.disputed_only}",
+                f"災害記録 {stats.records} / 由来未確認の記録 {stats.mentions}",
+            ],
+        ),
+    )
+    return records, mentions
+
+
+def _monument_mentions(
+    options: BuildOptions,
+    monuments: list[DisasterMonument],
+    report: BuildReport,
+) -> list[DisasterMention]:
+    """Read the disaster monuments for the places they say were hit."""
+    if not options.link_disaster_records or not monuments:
+        return []
+    llm, model_name, effort = _llm_operations(options)
+    mentions, stats = extract_monument_mentions(
+        monuments,
+        MonumentSetup(
+            llm=llm,
+            model_name=model_name,
+            effort=effort,
+            workers=options.llm_workers,
+        ),
+    )
+    report.add_stage(
+        StageReport(
+            stage="monument_records",
+            produced=len(mentions),
+            skipped=stats.quote_rejected,
+            messages=[
+                f"伝承碑 {stats.monuments}（伝承内容なし {stats.skipped_no_lore}）"
+                f" 実行{stats.requested} キャッシュ{stats.cached}",
+                f"地名 {stats.places_found} のうち被災地 {stats.affected}",
+            ],
+        ),
+    )
+    return mentions
+
+
+def _old_map_places(options: BuildOptions) -> list[HistoricalPlace]:
+    """Load the place names read off the old 1:50,000 maps, when available."""
+    if not options.include_gazetteer:
+        return []
+    archive = options.paths.nihu_dir / "nihu_rekishi_chimei.zip"
+    if not archive.exists():
+        return []
+    return load_historical_places(archive, sources=frozenset({OLD_MAP_SOURCE}))
 
 
 def _deduplicate(records: list[Toponym]) -> list[Toponym]:
@@ -262,10 +430,12 @@ def build_toponym_dataset(options: BuildOptions | None = None) -> BuildReport:
     dictionary = load_elements(settings.paths.curated_dir / "elements.yaml")
     sources = load_sources(settings.paths.curated_dir / "sources.yaml")
 
+    gazetteer_records, gazetteer_mentions = _ingest_gazetteer(settings, dictionary, report)
     records = [
         *_ingest_curated(settings, dictionary, report),
         *_ingest_gazetteers(settings, dictionary, report),
         *_ingest_prose(settings, dictionary, report),
+        *gazetteer_records,
     ]
     if settings.pref_codes is not None:
         records = [
@@ -306,12 +476,48 @@ def build_toponym_dataset(options: BuildOptions | None = None) -> BuildReport:
             pref_codes=settings.pref_codes,
             limit=settings.candidate_limit,
         )
+        messages = [f"住所データ {candidate_stats.rows} 行を走査"]
+        produced = candidate_stats.kept
+        skipped = candidate_stats.matched - candidate_stats.kept
+
+        old_map_places = _old_map_places(settings)
+        if old_map_places:
+            vanished, vanished_stats = screen_old_maps(
+                old_map_places,
+                dictionary,
+                threshold=settings.candidate_threshold,
+                pref_codes=settings.pref_codes,
+            )
+            candidates.extend(vanished)
+            produced += vanished_stats.kept
+            messages.append(
+                f"旧5万分の1地形図 {vanished_stats.rows} 件を走査し、"
+                f"現在の住所に残らない地名 {vanished_stats.kept} 件を追加",
+            )
         report.add_stage(
             StageReport(
                 stage="candidates",
-                produced=candidate_stats.kept,
-                skipped=candidate_stats.matched - candidate_stats.kept,
-                messages=[f"住所データ {candidate_stats.rows} 行を走査"],
+                produced=produced,
+                skipped=skipped,
+                messages=messages,
+            ),
+        )
+
+    mentions = [*gazetteer_mentions, *_monument_mentions(settings, monuments, report)]
+    if mentions:
+        link_stats = link_mentions(mentions, records, candidates)
+        report.add_stage(
+            StageReport(
+                stage="disaster_links",
+                produced=link_stats.linked,
+                skipped=link_stats.unmatched,
+                messages=[
+                    f"地名 {link_stats.places_with_records} 件に災害記録を対応づけ"
+                    f"（うち根拠レベル3に到達 {link_stats.raised_to_level_3} 件）",
+                    f"候補にも {link_stats.candidates_with_records} 件",
+                    f"災害種別が合わず近接記録に降格 {link_stats.demoted_hazard} / "
+                    f"距離が離れすぎ {link_stats.too_far}",
+                ],
             ),
         )
 
@@ -363,7 +569,11 @@ def build_toponym_dataset(options: BuildOptions | None = None) -> BuildReport:
             StageReport(
                 stage="outputs",
                 produced=len(outputs.files),
-                messages=[f"{outputs.bytes_written} バイト"],
+                skipped=outputs.removed,
+                messages=[
+                    f"{outputs.bytes_written} バイト"
+                    f"（前回の出力から {outputs.removed} ファイルを削除）",
+                ],
             ),
         )
     return report
