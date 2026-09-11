@@ -1,0 +1,47 @@
+graph TD
+    subgraph Backend ["backend/api"]
+        App[src.app]
+        Features[src.features]
+        Domain[src.domain]
+        Config[src.config]
+    end
+
+    subgraph Alg ["packages/alg"]
+        AlgEntry[alg.entrypoints]
+        AlgCore[alg.core]
+        AlgModels[alg.models]
+        AlgExp[alg.experimental]
+    end
+
+    subgraph Gateways ["packages/gateways"]
+        GwHttp[gateways.http]
+        GwLlm[gateways.llm]
+        GwAws[gateways.aws]
+        GwGsi[gateways.gsi]
+        GwWeb[gateways.web]
+        GwRdb[gateways.rdb]
+    end
+
+    App --> Features
+    App --> Config
+    Features --> Domain
+    Features --> Config
+    Features --> AlgEntry
+    Features --> GwRdb
+
+    AlgEntry --> AlgCore
+    AlgEntry --> AlgModels
+    AlgExp --> AlgCore
+    AlgExp --> AlgModels
+    AlgCore --> AlgModels
+    AlgCore --> GwLlm
+    AlgCore --> GwAws
+    AlgCore --> GwGsi
+    AlgCore --> GwWeb
+
+    GwGsi --> GwHttp
+    GwWeb --> GwHttp
+
+    AlgCore -.->|禁止| GwRdb
+    Domain -.->|禁止| Features
+    Domain -.->|禁止| Gateways

@@ -1,0 +1,10 @@
+# Backend workspace configuration
+# This file defines the workspace members for uv.
+# Tool configurations (ruff, mypy, etc.) are defined in each package's pyproject.toml.
+
+[tool.uv.workspace]
+members = [
+    "api",
+    "packages/alg",
+    "packages/gateways",
+]

@@ -1,0 +1,69 @@
+name: Check Backend
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "data/curated/**"
+      - ".github/workflows/check_backend.yml"
+  workflow_dispatch:
+
+jobs:
+  check_backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Check formatting
+        run: |
+          uv run --directory api ruff format --check .
+          uv run --directory packages/alg ruff format --check .
+          uv run --directory packages/gateways ruff format --check .
+
+      - name: Lint, dependency rules and type check
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Check the OpenAPI specification is up to date
+        run: make check-openapi
+
+      - name: Check the dependency diagram is up to date
+        run: make check-deps
+
+      - name: Check the curated dataset files parse
+        # 要素辞典・出典・代表事例は手で編集するため、壊れた YAML を早く見つける
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          from alg.core.toponyms.tools.curated import load_elements, load_sources
+
+          curated = Path("../data/curated")
+          elements = load_elements(curated / "elements.yaml")
+          sources = load_sources(curated / "sources.yaml")
+          print(f"elements={len(elements.elements)} sources={len(sources)}")
+          assert elements.elements, "elements.yaml が空です"
+          assert sources, "sources.yaml が空です"
+
+          known = {source.id for source in sources}
+          missing = sorted(
+              source_id
+              for element in elements.elements
+              for source_id in element.source_ids
+              if source_id not in known
+          )
+          assert not missing, f"未定義の出典を参照しています: {missing}"
+          PY

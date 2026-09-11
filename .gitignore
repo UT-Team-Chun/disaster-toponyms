@@ -1,0 +1,11 @@
+.DS_Store
+.docker/
+.vscode
+.token.json
+.envrc
+
+# Playwright MCP の一時出力（スナップショット・スクリーンショット）
+.playwright-mcp/
+
+# ローカルの開発支援設定（公開リポジトリには含めない）
+.claude/

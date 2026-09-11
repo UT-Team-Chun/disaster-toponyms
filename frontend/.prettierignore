@@ -1,0 +1,13 @@
+# パイプラインが生成する配信データ（手で整形しない）
+public/data/
+
+# 自動生成コード
+app/gen/
+.react-router/
+
+# ビルド成果物
+build/
+node_modules/
+
+# ロックファイル
+yarn.lock

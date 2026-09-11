@@ -1,0 +1,47 @@
+interfaces = []
+exclude = [
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/sandbox",
+    "**/scripts",
+    "**/tests",
+]
+source_roots = [
+    ".",
+]
+
+# alg.models は純粋なデータ定義。他レイヤーに依存しない
+[[modules]]
+path = "alg.models"
+depends_on = []
+
+# alg.core は外部サービス接続（LLM・AWS・公開Web API）のみ利用できる。
+# RDB 接続は禁止（純粋な計算ロジックを保つため）
+[[modules]]
+path = "alg.core"
+depends_on = [
+    {path = "alg.models"},
+    {path = "gateways.llm"},
+    {path = "gateways.aws"},
+    {path = "gateways.gsi"},
+    {path = "gateways.web"},
+    {path = "gateways.estat"},
+]
+
+# alg.entrypoints は alg.core と alg.models のみ依存
+[[modules]]
+path = "alg.entrypoints"
+depends_on = [
+    {path = "alg.core"},
+    {path = "alg.models"},
+    {path = "gateways.llm"},
+    {path = "gateways.gsi"},
+]
+
+# alg.experimental は検証用。core と同じ範囲
+[[modules]]
+path = "alg.experimental"
+depends_on = [
+    {path = "alg.core"},
+    {path = "alg.models"},
+]

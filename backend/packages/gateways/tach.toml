@@ -1,0 +1,49 @@
+interfaces = []
+exclude = [
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/tests",
+]
+source_roots = [
+    ".",
+]
+
+# 低レイヤ: 共有HTTPクライアント（キャッシュ・レート制限）
+[[modules]]
+path = "gateways.http"
+depends_on = []
+
+# rdb は backend の features からのみ利用する
+[[modules]]
+path = "gateways.rdb"
+depends_on = []
+
+# llm は alg からアクセス可能
+[[modules]]
+path = "gateways.llm"
+depends_on = []
+
+# aws は alg からアクセス可能
+[[modules]]
+path = "gateways.aws"
+depends_on = []
+
+# gsi/web は公開Web APIへの接続。共有HTTPクライアントのみに依存
+[[modules]]
+path = "gateways.gsi"
+depends_on = [
+    {path = "gateways.http"},
+]
+
+[[modules]]
+path = "gateways.web"
+depends_on = [
+    {path = "gateways.http"},
+]
+
+# estat は国勢調査の小地域境界（町丁・字等ポリゴン）を取得する
+[[modules]]
+path = "gateways.estat"
+depends_on = [
+    {path = "gateways.http"},
+]

@@ -1,0 +1,279 @@
+# 全国の代表的な警鐘地名（人手キュレーション）。
+# quote は verify_against に指定したローカル資料テキストと逐語一致することをビルド時に検証する。
+# 検証に失敗した場合はビルドが警告を出し、quote_verified が false になる。
+toponyms:
+  - name: 蛇落地悪谷
+    reading: ジャラクジアシダニ
+    variants: [八木蛇落地悪谷, 上楽地, 八木上楽地芦屋, 八木]
+    status: renamed
+    renamed_to: 八木
+    admin:
+      pref: 広島県
+      municipality: 広島市安佐南区
+      oaza: 八木三丁目
+    location: {lat: 34.482094, lon: 132.492249, precision: oaza, geocode_source: manual}
+    hazard_types: [debris_flow, slope_failure, flood]
+    etymology_summary: >-
+      2014年8月20日の広島土砂災害で大きな被害を受けた八木地区について、かつて
+      「八木蛇落地悪谷」と呼ばれていたと報じられた。大蛇退治の「蛇落地伝説」は地元の寺に
+      伝わるが、「蛇落地」「悪谷」を地名として記した文献は確認されていない。
+    dispute_note: >-
+      広島市郷土資料館と安佐南区役所は「蛇落地」「悪谷」を記す文献を確認できないとしている。
+      「上楽地」は昭和40年代までの古地図に残る地名。災害地名として扱う際は、伝承と
+      文献上の裏づけを区別する必要がある。
+    review:
+      status: reviewed
+      reviewer: curated
+      note: 伝承としては存在するが地名としての文献的裏づけは未確認。根拠レベルは2に留める。
+    evidence:
+      - kind: news
+        stance: supports
+        source_id: yagi_thepage_2014
+        locator: https://news.yahoo.co.jp/articles/a356615f07c10cd18e85ca1b577dc7277b54986d
+        verify_against: news/yagi_jarakuji.txt
+        level: 2
+        claim: 地元の寺に大蛇退治に由来する「蛇落地伝説」が語り継がれ、1976年に記念誌へ記載された。
+        quote: >-
+          番組で住職が証言していた地元の浄楽寺に確認すると、13年前に亡くなった前住職の桐原慈孝さんが、山にすんでいた大蛇の首を戦国時代の八木城主が刀で切り落として退治したという「蛇落地伝説」を語り継ぎ、1976（昭和51）年に八木小学校の創立100周年記念誌に書き残したそうです。
+      - kind: news
+        stance: disputes
+        source_id: yagi_thepage_2014
+        locator: https://news.yahoo.co.jp/articles/a356615f07c10cd18e85ca1b577dc7277b54986d
+        verify_against: news/yagi_jarakuji.txt
+        level: 0
+        claim: 広島市郷土資料館は「蛇落地」「悪谷」を記す文献の存在を確認できないとしている。
+        quote: >-
+          広島市郷土資料館に問い合わせると、「蛇落地」や「悪谷」を記す文献などはないと言われました。
+      - kind: news
+        stance: supports
+        source_id: yagi_thepage_2014
+        locator: https://news.yahoo.co.jp/articles/a356615f07c10cd18e85ca1b577dc7277b54986d
+        verify_against: news/yagi_jarakuji.txt
+        level: 2
+        claim: 災害後の報道で旧地名「八木蛇落地悪谷」が広く知られるようになった経緯。
+        quote: >-
+          八木地区がかつて「八木蛇落地悪谷（やぎじゃらくじあしだに）」と呼ばれていたことは、災害発生から約1週間後の8月26日、フジテレビの情報番組「とくダネ！」が伝えて反響を呼びました。
+    hazard_corroboration:
+      related_disasters:
+        - date: "2014-08-20"
+          name: 平成26年8月豪雨（広島土砂災害）
+          source_id: yagi_thepage_2014
+
+  - name: 蛇抜け
+    reading: ジャヌケ
+    variants: [蛇抜, じゃぬけ]
+    status: current
+    admin:
+      pref: 長野県
+      municipality: 南木曽町
+      oaza: 読書
+    location: {lat: 35.623253, lon: 137.631439, precision: oaza, geocode_source: gsi}
+    hazard_types: [debris_flow, slope_failure]
+    etymology_summary: >-
+      南木曽町では大きな石や根付きの木までを含む土石流を「蛇抜け」と呼ぶ。前兆の伝承と
+      「尾根の先・谷の出口・お宮の前には家を建てるな」という教えが今も伝わり、
+      1953年の伊勢小屋沢の蛇抜けでは3人が犠牲となって「じゃぬけの碑」が建てられた。
+    review: {status: reviewed, reviewer: curated}
+    evidence:
+      - kind: legend
+        stance: supports
+        source_id: wikipedia_nagiso
+        locator: https://ja.wikipedia.org/wiki/南木曽町
+        verify_against: wikipedia/南木曽町.txt
+        level: 2
+        claim: 南木曽町では土石流そのものを「蛇抜け」と呼び、地名・語彙として定着している。
+        quote: >-
+          当町では古くから土砂災害が多く発生している。大きな石や木の切り株、根付きの木までもが混じった土石流が特徴で、地元ではこれを「蛇抜け（じゃぬけ）」と呼んでいる。
+      - kind: legend
+        stance: supports
+        source_id: wikipedia_nagiso
+        locator: https://ja.wikipedia.org/wiki/南木曽町
+        verify_against: wikipedia/南木曽町.txt
+        level: 3
+        claim: 前兆と危険地形を伝える口承が残り、宅地選定の禁忌として継承されている。
+        quote: >-
+          前兆としては「白い雨が降る」「谷の水が急に止まる」「きな臭いにおいがする」というものがあり、尾根の先や谷の出口、お宮の前は危険だから家を建てないようにとの教えも伝わる。
+      - kind: monument
+        stance: supports
+        source_id: wikipedia_nagiso
+        locator: https://ja.wikipedia.org/wiki/南木曽町
+        verify_against: wikipedia/南木曽町.txt
+        level: 3
+        claim: 1953年の伊勢小屋沢の蛇抜けで3人が犠牲となり、記念の像と碑が建てられた。
+        quote: >-
+          町内に『悲しめる乙女の像』が建立されるきっかけとなったのが、1953年（昭和28年）7月20日の午前8時頃に発生した、伊勢小屋沢の蛇抜けである。
+    hazard_corroboration:
+      related_disasters:
+        - date: "1953-07-20"
+          name: 伊勢小屋沢の蛇抜け（死者3名）
+          source_id: wikipedia_nagiso
+
+  - name: 浪分
+    reading: ナミワケ
+    variants: [浪分神社, 浪分大明神]
+    status: current
+    admin:
+      pref: 宮城県
+      municipality: 仙台市若林区
+      oaza: 霞目
+    location: {lat: 38.234756, lon: 140.920074, precision: oaza, geocode_source: gsi}
+    hazard_types: [tsunami, earthquake]
+    etymology_summary: >-
+      慶長16年（1611年）の慶長三陸地震の津波が、この地で二つに分かれて引いたと伝わる。
+      稲荷神社は明治38年に「浪分神社」へ改称し、津波到達点を示す地名として知られる。
+    review: {status: reviewed, reviewer: curated}
+    evidence:
+      - kind: legend
+        stance: supports
+        source_id: wikipedia_namiwake
+        locator: https://ja.wikipedia.org/wiki/浪分神社
+        verify_against: wikipedia/浪分神社.txt
+        level: 3
+        claim: 慶長三陸地震の津波がこの地で二つに分かれたという伝承が社名の由来である。
+        quote: >-
+          現在の鎮座地は、慶長16年（1611年）の慶長三陸地震に伴い発生した大津波のときに当地を襲った津波が二つに分かれ、その後、水が引いた場所だと伝わる。
+      - kind: legend
+        stance: supports
+        source_id: wikipedia_namiwake
+        locator: https://ja.wikipedia.org/wiki/浪分神社
+        verify_against: wikipedia/浪分神社.txt
+        level: 2
+        claim: 津波除けの神徳から「浪分大明神」と呼ばれるようになった。
+        quote: >-
+          これらの津波に関する伝承は、稲荷神社を「津波除け」の神社としての神徳を高めることにつながり、「浪分大明神」という名で呼ばれるようになった。
+    hazard_corroboration:
+      related_disasters:
+        - date: "1611"
+          name: 慶長三陸地震津波
+          source_id: wikipedia_namiwake
+
+  - name: ツリバチナガレ
+    reading: ツリバチナガレ
+    status: historical
+    admin:
+      pref: 岩手県
+      municipality: 大船渡市
+    location: {lat: 39.081863, lon: 141.708481, precision: municipality, geocode_source: gsi}
+    hazard_types: [tsunami]
+    etymology_summary: >-
+      津波で吊り鉢が流れ着いたことに由来すると伝わる地名で、標高80mの峠に残る。
+      1896年の『岩手沿岸古地名考』に記録され、磯田(2018)の追跡調査で現存が確認された。
+    dispute_note: >-
+      標高80mの峠という位置は現実の津波到達点として考えがたく、磯田(2018)は、生き残る
+      災害地名は話として面白くするために尾ひれをつけたものではないかと解釈している。
+      災害リスクと安易に結びつけないよう注意が必要な例。
+    review:
+      status: reviewed
+      reviewer: curated
+      note: 由来伝承は記録されているが、史実性については出典自身が疑義を示している。
+    evidence:
+      - kind: academic
+        stance: supports
+        source_id: wikipedia_saigai_chimei
+        locator: https://ja.wikipedia.org/wiki/災害地名
+        verify_against: wikipedia/災害地名.txt
+        level: 2
+        claim: 津波で吊り鉢が流れ着いたことに由来する地名として記録され、現存が確認された。
+        quote: >-
+          磯田 (2018)は明治三陸地震津波発生後の1896年に刊行された『岩手沿岸古地名考』の追跡調査を行い、岩手県大船渡市において津波で吊り鉢が流れ着いたことに由来するという「ツリバチナガレ」という地名が標高80mの峠に残存していること、宮城県宮古市田老町において「津波が標高110mの丘を越えた」とする伝承が残っていたことなどを確認した。
+      - kind: academic
+        stance: disputes
+        source_id: isoda_2018
+        locator: https://doi.org/10.5190/tga.70.3_127
+        verify_against: wikipedia/災害地名.txt
+        level: 0
+        claim: 生き残る災害地名は語りとして誇張された可能性があり、史実性は保証されない。
+        quote: >-
+          現実的な被災の記憶や史実にもとづく災害地名とその由来は忘れられやすく、生き残る災害地名は話として面白くするために尾ひれをつけたものではないか
+
+  - name: 田老
+    reading: タロウ
+    variants: [津波太郎]
+    status: current
+    admin:
+      pref: 岩手県
+      municipality: 宮古市
+      oaza: 田老
+    location: {lat: 39.735699, lon: 141.968582, precision: oaza, geocode_source: gsi}
+    hazard_types: [tsunami]
+    etymology_summary: >-
+      津波被害が繰り返されたことから「津波太郎（田老）」の異名で呼ばれた。
+      1611年の慶長三陸地震津波で村がほとんど全滅し、明治・昭和の三陸津波でも
+      甚大な被害を受け、巨大防潮堤が築かれた。
+    review: {status: reviewed, reviewer: curated}
+    evidence:
+      - kind: legend
+        stance: supports
+        source_id: wikipedia_taro
+        locator: https://ja.wikipedia.org/wiki/田老町
+        verify_against: wikipedia/田老町.txt
+        level: 3
+        claim: 繰り返す津波被害から「津波太郎」の異名が生まれ、1611年に村が全滅した記録がある。
+        quote: >-
+          田老は「津波太郎（田老)」の異名を付けられるほど古くから津波被害が多く、江戸時代初期の1611年に起きた慶長三陸地震津波で村がほとんど全滅したとの記録がある。
+    hazard_corroboration:
+      related_disasters:
+        - date: "1896-06-15"
+          name: 明治三陸地震津波（死者1859人）
+          source_id: wikipedia_taro
+        - date: "1933-03-03"
+          name: 昭和三陸地震津波（死者911人）
+          source_id: wikipedia_taro
+        - date: "2011-03-11"
+          name: 東北地方太平洋沖地震津波
+          source_id: wikipedia_taro
+
+  - name: あし原町
+    reading: アシハラチョウ
+    variants: [芦原, 葦原]
+    status: current
+    admin:
+      pref: 愛知県
+      municipality: 名古屋市西区
+      oaza: あし原町
+    location: {lat: 35.210735, lon: 136.865433, precision: oaza, geocode_source: gsi}
+    hazard_types: [flood, inundation]
+    etymology_summary: >-
+      平成12年（2000年）の東海豪雨で新川の堤防が決壊した地点の地名。
+      「アシ」は低湿地を示す災害地名とされ、対岸は清須市「阿原」である。
+    review: {status: reviewed, reviewer: curated}
+    evidence:
+      - kind: official
+        stance: supports
+        source_id: toyokawa_koaza_bousai
+        locator: https://www.city.toyokawa.lg.jp/material/files/group/2/4.pdf
+        verify_against: local_history/toyokawa_koaza.txt
+        level: 3
+        claim: 東海豪雨で新川堤防が決壊した地点の地名が「あし原町」であり、対岸は「阿原」である。
+        quote: >-
+          中根洋治氏によれば平成 12 年の東海豪雨では名古屋市西区で新川の堤防が決壊しましたが、その地名は「あし原町」であり、対岸の地名は清須市（旧新川町）の「阿原」とされます。
+    hazard_corroboration:
+      related_disasters:
+        - date: "2000-09"
+          name: 東海豪雨（新川堤防決壊）
+          source_id: toyokawa_koaza_bousai
+
+  - name: 阿原
+    reading: アワラ
+    variants: [アワラ, 荒原, 安原]
+    status: current
+    admin:
+      pref: 愛知県
+      municipality: 清須市
+      oaza: 阿原
+    location: {lat: 35.216751, lon: 136.858307, precision: oaza, geocode_source: gsi}
+    hazard_types: [inundation, flood]
+    etymology_summary: >-
+      「アワラ」は低湿地を示す災害地名。東海豪雨で新川堤防が決壊した名古屋市西区
+      「あし原町」の対岸にあたる。
+    review: {status: reviewed, reviewer: curated}
+    evidence:
+      - kind: official
+        stance: supports
+        source_id: toyokawa_koaza_bousai
+        locator: https://www.city.toyokawa.lg.jp/material/files/group/2/4.pdf
+        verify_against: local_history/toyokawa_koaza.txt
+        level: 3
+        claim: 東海豪雨の決壊地点の対岸の地名が清須市「阿原」であると記される。
+        quote: >-
+          中根洋治氏によれば平成 12 年の東海豪雨では名古屋市西区で新川の堤防が決壊しましたが、その地名は「あし原町」であり、対岸の地名は清須市（旧新川町）の「阿原」とされます。

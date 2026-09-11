@@ -1,0 +1,73 @@
+name: Deploy Pages
+
+# 静的サイトを GitHub Pages に配信する。
+# データセット (frontend/public/data) はリポジトリに含まれているため、
+# ここでは Python パイプラインを実行しない（APIキー不要・再現可能）。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy_pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時に走らせず、最新のコミットだけを配信する
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint and typecheck
+        run: yarn lint
+
+      - name: Test
+        run: yarn ci:test
+
+      - name: Build
+        # VITE_BASE_PATH はリポジトリ名に合わせる（GitHub Pages のサブパス）
+        run: yarn build:pages
+
+      - name: Check the dataset is present in the build
+        run: |
+          test -f build/client/data/toponyms.geojson
+          test -f build/client/data/stats.json
+          test -f build/client/404.html
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: frontend/build/client
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,243 @@
+# 警鐘地名データセットの出典一覧。
+# evidence.source_id はここで定義した id を参照する。
+sources:
+  - id: kiryu_timeikou_2000
+    type: book
+    title: 桐生市地名考
+    author: 島田一郎
+    publisher: 桐生市立図書館
+    url: https://www.city.kiryu.lg.jp/_res/projects/default_project/_page_/001/001/127/timeikou.pdf
+    license: 桐生市立図書館公開PDF（引用のうえ出典明示）
+    accessed: "2026-09-11"
+    note: >-
+      桐生市の字・小字すべてに解説を付した研究書。「崩壊地名」「替字」「山腹の崩壊で埋まって
+      出来た傾斜地」のように災害由来を明記した項目が多数あり、字面だけでは分からない警鐘地名の
+      一次資料として本データセットの中核をなす。
+
+  - id: toyokawa_koaza_bousai
+    type: pdf
+    title: 自然災害に気をつけたい地名（豊川市域の小字名）
+    publisher: 豊川市
+    url: https://www.city.toyokawa.lg.jp/material/files/group/2/4.pdf
+    license: 豊川市公開PDF（引用のうえ出典明示）
+    accessed: "2026-09-11"
+    note: 洪水・土砂災害・地震ごとに、市域の小字名を災害地名の観点から列挙した自治体資料。
+
+  - id: nagano_sabo_chimei_general
+    type: gov
+    title: 災害にかかわる地名（全般）
+    publisher: 長野県建設部砂防課
+    url: https://www.pref.nagano.lg.jp/sabo/manabu/chizu-yomitoku-2.html
+    license: 長野県サイト利用規約
+    accessed: "2026-09-11"
+    note: >-
+      地形特性由来の地名（シシ・窪・タイ・クラ・アズ・ウメ 等）と災害地名（じゃぬけ・おしだし・
+      ぞうれ・はば・まま 等）を読み・意味・災害種別つきで整理した一覧。
+
+  - id: nagano_sabo_chimei_landslide
+    type: gov
+    title: 災害にかかわる地名（地すべり）
+    publisher: 長野県建設部砂防課
+    url: https://www.pref.nagano.lg.jp/sabo/manabu/chizu-yomitoku-4.html
+    license: 長野県サイト利用規約
+    accessed: "2026-09-11"
+    note: 農業土木学会(2004)『農地地すべり防止対策』資料編「地名と地すべり」に基づく地名分類。
+
+  - id: nogyodoboku_2004
+    type: book
+    title: 土地改良事業計画設計基準 計画「農地地すべり防止対策」基準書・技術書（資料編3 地名と地すべり）
+    publisher: 農業土木学会
+    year: 2004
+    accessed: "2026-09-11"
+    note: 長野県砂防課ページ経由で参照。地すべり地形を示す地名を6分類で提示。
+
+  - id: gsi_denshouhi
+    type: db
+    title: 自然災害伝承碑
+    publisher: 国土地理院
+    url: https://www.gsi.go.jp/bousaichiri/denshouhi.html
+    license: 国土地理院コンテンツ利用規約
+    accessed: "2026-09-11"
+    note: >-
+      全国2,469基の伝承碑。碑名・建立年・災害名・災害種別・伝承内容と座標を収録。
+      地名の由来そのものではないが、実際の被災記録として警鐘地名の裏づけに用いる。
+
+  - id: gsi_hazardmap_opendata
+    type: gov
+    title: 重ねるハザードマップ オープンデータ配信
+    publisher: 国土交通省・国土地理院
+    url: https://disaportal.gsi.go.jp/hazardmap/copyright/opendata.html
+    license: ハザードマップポータルサイト利用規約
+    accessed: "2026-09-11"
+    note: 土砂災害警戒区域（土石流・急傾斜地・地すべり）、洪水・津波・高潮の浸水想定タイル。
+
+  - id: gsi_tiles
+    type: map
+    title: 地理院タイル
+    publisher: 国土地理院
+    url: https://maps.gsi.go.jp/development/ichiran.html
+    license: 国土地理院コンテンツ利用規約
+    accessed: "2026-09-11"
+
+  - id: geolonia_addresses
+    type: db
+    title: Geolonia 住所データ
+    publisher: 株式会社Geolonia
+    url: https://geolonia.github.io/japanese-addresses/
+    license: CC BY 4.0
+    accessed: "2026-09-11"
+    note: 全国277,630件の大字・町丁目・小字通称と代表点座標。候補抽出とジオコーディングに使用。
+
+  - id: nihu_historical_placenames
+    type: db
+    title: 歴史地名データ（大日本地名辞書・旧5万分の1地形図）
+    publisher: 人間文化研究機構・H-GIS研究会
+    url: https://www.nihu.jp/ja/database/source_map.html
+    license: 出典明示のうえ自由利用（商用・改変可）
+    accessed: "2026-09-11"
+    note: 旧5万分の1地形図 242,544件、大日本地名辞書 53,528件。消滅した歴史地名の座標付与に使用。
+
+  - id: ndl_tsugidigi
+    type: db
+    title: 次世代デジタルライブラリー（全文検索API）
+    publisher: 国立国会図書館
+    url: https://lab.ndl.go.jp/service/tsugidigi/
+    license: 著作権保護期間満了資料
+    accessed: "2026-09-11"
+    note: 図書28万点・古典籍8万点のOCR全文検索。郡誌・村誌・戦前の地すべり報告に地名由来の記述がある。
+
+  - id: wikipedia_saigai_chimei
+    type: web
+    title: 災害地名（ウィキペディア日本語版）
+    url: https://ja.wikipedia.org/wiki/災害地名
+    license: CC BY-SA 4.0
+    accessed: "2026-09-11"
+
+  - id: isoda_2018
+    type: paper
+    title: 災害地名調査のすすめ
+    author: 磯田弦
+    year: 2018
+    publisher: 季刊地理学 70(3), 127-133
+    doi: https://doi.org/10.5190/tga.70.3_127
+    accessed: "2026-09-11"
+    note: >-
+      災害地名研究の方法論。被災の記憶に基づく由来は忘れられやすく、生き残る災害地名は
+      面白く語られるために尾ひれがついた可能性があると指摘する。本データセットが根拠レベルを
+      前面に出す理由。
+
+  - id: hirakawa_2016
+    type: paper
+    title: 津波由来地名の整理・分類と空間分布に関する考察 ―東日本大震災の被災地を対象にして―
+    author: 平川雄太・佐藤翔輔・鹿島七洋・今村文彦
+    year: 2016
+    publisher: 災害情報 14, 128-
+    doi: https://doi.org/10.24709/jasdis.14.0_128
+    accessed: "2026-09-11"
+    note: >-
+      岩手・宮城・福島で津波由来とされる地名110件を抽出しKJ法で分類。浸水域の町・大字の
+      約10%にとどまり、災害伝承への寄与は限定的と考察。
+
+  - id: tsuchida_2025
+    type: paper
+    title: 水害関連地名による水害危険性の評価の可能性
+    author: 土田航大
+    year: 2025
+    publisher: 日本地理学会発表要旨集 2025年春季学術大会
+    doi: https://doi.org/10.14866/ajg.2025s.0_296
+    accessed: "2026-09-11"
+    note: >-
+      木津町の大字7件・小字250件を抽出し、洪水地名54件、可能性あり109件、言えない88件に分類。
+      開発による地名改変後は洪水地名の方が水害危険性を類推しやすいと指摘。
+
+  - id: ogawa_2011
+    type: book
+    title: あぶない地名 災害地名ハンドブック
+    author: 小川豊
+    year: 2011
+    publisher: 三一書房
+    note: 書誌のみ収録（本文は再配布しない）。
+
+  - id: tanikawa_2023
+    type: book
+    title: 全国水害地名をゆく
+    author: 谷川彰英
+    year: 2023
+    publisher: 集英社インターナショナル
+    note: 書誌のみ収録（本文は再配布しない）。
+
+  - id: hiroshima_2014_yagi
+    type: news
+    title: 2014年8月広島市土砂災害と八木地区の旧地名
+    url: https://ja.wikipedia.org/wiki/平成26年8月豪雨
+    license: CC BY-SA 4.0
+    accessed: "2026-09-11"
+    note: 八木地区の旧地名「蛇落地悪谷」に関する報道・記述の参照先。
+
+  - id: yagi_thepage_2014
+    type: news
+    title: 広島災害の教訓―変わる地名、消える危険サイン
+    publisher: Yahoo!ニュース オリジナル THE PAGE
+    year: 2014
+    url: https://news.yahoo.co.jp/articles/a356615f07c10cd18e85ca1b577dc7277b54986d
+    accessed: "2026-09-11"
+    note: >-
+      八木地区の旧地名「八木蛇落地悪谷」の報道経緯と、広島市郷土資料館・安佐南区役所が
+      「蛇落地」「悪谷」を記す文献を確認できないとした点の両方を伝える記事。
+
+  - id: wikipedia_nagiso
+    type: web
+    title: 南木曽町（ウィキペディア日本語版）
+    url: https://ja.wikipedia.org/wiki/南木曽町
+    license: CC BY-SA 4.0
+    accessed: "2026-09-11"
+    note: 土石流を指す方言「蛇抜け」と、その前兆・禁忌の口承、1953年伊勢小屋沢の災害を記載。
+
+  - id: wikipedia_namiwake
+    type: web
+    title: 浪分神社（ウィキペディア日本語版）
+    url: https://ja.wikipedia.org/wiki/浪分神社
+    license: CC BY-SA 4.0
+    accessed: "2026-09-11"
+
+  - id: wikipedia_taro
+    type: web
+    title: 田老町（ウィキペディア日本語版）
+    url: https://ja.wikipedia.org/wiki/田老町
+    license: CC BY-SA 4.0
+    accessed: "2026-09-11"
+
+  - id: toyokawa_village_origins
+    type: pdf
+    title: 豊川市域の旧村名の由来一覧
+    publisher: 豊川市
+    url: https://www.city.toyokawa.lg.jp/material/files/group/2/sankou1.pdf
+    license: 豊川市公開PDF（引用のうえ出典明示）
+    accessed: "2026-09-11"
+    note: >-
+      旧村名ごとに由来を整理した一覧。地形・土地利用・災害に関わる部分に下線が引かれており、
+      崖・氾濫・湿地など地形由来の記述が多数含まれる。
+
+  - id: takahashi_saigai_chimei
+    type: web
+    title: 地名をあるく 96. 災害と地名
+    publisher: 高梁市（広報たかはし）
+    year: 2014
+    url: https://www.city.takahashi.lg.jp/site/koho/saigaitochimei.html
+    license: 高梁市サイト利用規約（引用のうえ出典明示）
+    accessed: "2026-09-11"
+    note: >-
+      岡山県高梁市域の地名を地すべり・崩壊・土砂災害の観点から解説した連載記事。
+      広島市八木の事例にも触れている。
+
+  - id: estat_small_area_boundary
+    type: db
+    title: 令和2年国勢調査 小地域（町丁・字等別）境界データ
+    publisher: 総務省統計局（e-Stat）
+    year: 2020
+    url: https://www.e-stat.go.jp/gis/statmap-search?page=1&type=2&aggregateUnitForBoundary=A&toukeiCode=00200521
+    license: 政府統計の総合窓口（e-Stat）利用規約
+    accessed: "2026-09-11"
+    note: >-
+      全国 22 万件の町丁・字等ポリゴン。小字の境界は全国では公開されていないため、
+      地名がカバーする範囲はこの単位で表示している。

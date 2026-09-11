@@ -1,0 +1,30 @@
+interfaces = []
+exclude = [
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/docs",
+    "**/tests",
+    "**/venv",
+]
+source_roots = [
+    ".",
+]
+
+[[modules]]
+path = "src.domain"
+depends_on = []
+
+[[modules]]
+path = "src.config"
+depends_on = []
+
+[[modules]]
+path = "src.features"
+depends_on = [
+    "src.domain",
+    "src.config",
+]
+
+[[modules]]
+path = "src.app"
+depends_on = ["src.features", "src.config"]

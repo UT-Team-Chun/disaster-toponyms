@@ -1,0 +1,12 @@
+# 自動生成物は言語統計と差分から除外する
+frontend/app/gen/** linguist-generated=true
+frontend/yarn.lock linguist-generated=true
+backend/uv.lock linguist-generated=true
+uv.lock linguist-generated=true
+backend/api/openapi.yaml linguist-generated=true
+docs/dependencies.mmd linguist-generated=true
+
+# パイプラインが書き出す配信データ（手で編集しない）
+frontend/public/data/**.geojson linguist-generated=true
+frontend/public/data/**.json linguist-generated=true
+frontend/public/data/README.md linguist-generated=false
